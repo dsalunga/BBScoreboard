@@ -1,0 +1,30 @@
+﻿@{
+
+}
+
+<div id="actionEditor" class="modal" tabindex="-1" role="dialog" aria-labelledby="actionEditorLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                <h3 id="actionEditorLabel" class="modal-title"></h3>
+            </div>
+            <div class="modal-body">
+                <div><strong>Time:</strong></div>
+                <div class="pull-left">
+                    <select id="mm2" name="mm2" style="width: auto; display: initial" class="form-control"></select>:<select id="ss2" name="ss2" style="width: auto; display: initial" class="form-control"></select>
+                </div>
+                <br />
+            </div>
+            <div class="modal-footer">
+                <button id="undoRedo" class="btn btn-danger pull-left">
+                    <i class="glyphicon glyphicon-remove icon-white"></i>&nbsp;<span></span>
+                </button>
+                <button class="btn btn-success time-update">
+                    <i class="glyphicon glyphicon-edit icon-white"></i>&nbsp;Update
+                </button>
+                <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+﻿@using BBScoreboard
+@{
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    Page.Title = "Game Season Entry";
+    Layout = "~/_SiteLayout.cshtml";
+
+    PageData["SubTitle"] = "Manage";
+
+    Validation.RequireField("Name", "You must specify the Season Name.");
+
+    int seasonId = DataHelper.GetId(Request["Id"]);
+    var db = new BBScoreboardEntities();
+
+    UCSeason season = seasonId > 0 ? db.UCSeasons.Find(seasonId) : new UCSeason();
+
+    if (IsPost && Validation.IsValid() && ModelState.IsValid)
+    {
+        var name = Request["Name"];
+        season.Name = name;
+
+        if (seasonId == -1)
+        {
+            db.UCSeasons.Add(season);
+        }
+
+        db.SaveChanges();
+
+        Response.Redirect("~/Manage/Seasons", false);
+        return;
+
+        //ModelState.AddFormError("Name is already in use.");
+    }
+}
+
+<div class="row">
+    <div class="col-md-5">
+        <form class="form-horizontal" method="post">
+            @Html.ValidationSummary("Entry was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+
+            <div class="form-group">
+                <label class="control-label" for="Name">Season Name</label>
+                <div>
+                    <input type="text" name="Name" placeholder="Season Name" class="form-control" value="@season.Name" @Validation.For("Name")>
+                    @Html.ValidationMessage("Name")
+                </div>
+            </div>
+            @* <br />
+                <div class="control-group">
+                    <label class="control-label" for="price">Price</label>
+                    <div class="controls">
+                        <input id="txtChar" onkeypress="return isNumberKey(event)" type="text" class="span2" name="price" placeholder="Price" @Validation.For("price")>
+                        @Html.ValidationMessage("price")
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="quantity">Quantity</label>
+                    <div class="controls">
+                        <input onkeypress="return isNumberKey(event)" type="text" class="span1" name="quantity" placeholder="Quantity" @Validation.For("quantity")>
+                        @Html.ValidationMessage("quantity")
+                    </div>
+                </div>
+
+
+                 <div class="control-group">
+                    <label class="control-label" for="description">Description</label>
+                    <div class="controls">
+                        <input type="text" class="span4" name="description" placeholder="Description" @Validation.For("description")>
+                        @Html.ValidationMessage("description")
+                    </div>
+                </div>*@
+
+            <div class="form-group">
+                <div class="">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a href="Seasons" class="btn btn-default">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

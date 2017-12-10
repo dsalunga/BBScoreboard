@@ -1,0 +1,140 @@
+﻿@using BBScoreboard
+@{
+    var appName = ConfigHelper.Get("AppName", "BBCup");
+    var subTitle = PageData["SubTitle"];
+    //var titleExtra = PageData["TitleExtra"];
+    if (string.IsNullOrEmpty(subTitle))
+    {
+        subTitle = appName;
+    }
+
+    var user = AppHelper.GetCurrentUser();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>@Page.Title - @appName</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="~/assets/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/assets/css/site.css" rel="stylesheet" />
+    <style type="text/css">
+        body {
+            padding-top: 60px;
+            padding-bottom: 40px;
+        }
+    </style>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="~/assets/js/html5shiv.js"></script>
+      <script src="~/assets/js/respond.min.js"></script>
+    <![endif]-->
+    @RenderSection("head", required: false)
+</head>
+
+<body role="document">
+    <div class="navbar navbar-inverse navbar-fixed-top hidden-print" role="navigation">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand hidden-print" href="~/">
+                    <img src="~/assets/img/bbscoreboard.png" title="@appName" />
+                </a>
+            </div>
+            <div class="navbar-collapse collapse">
+                <ul class="nav navbar-nav">
+                    <li @*class="active"*@><a href="~/">Home</a></li>
+                    @if (user != null)
+                    {
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">Gameplay <b class="caret"></b></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="~/Gameplay/Games?View=Manager">Scoreboard</a></li>
+                                <li><a href="~/Gameplay/Games?View=Stats">Game Stats</a></li>
+                                @*<li><a href="~/Gameplay/Games?View=Viewer">Viewer Console</a></li>*@
+                                @*<li><a href="#">Something else here</a></li>*@
+                                @*<li class="divider"></li>
+                                    <li class="nav-header">Nav header</li>
+                                    <li><a href="#">Separated link</a></li>
+                                    <li><a href="#">One more separated link</a></li>*@
+                            </ul>
+                        </li>
+                        if (user.Access == (int)AccessType.Admin)
+                        {
+                            <li class="dropdown">
+                                <a href="#" class="dropdown-toggle" data-toggle="dropdown">Manage <b class="caret"></b></a>
+                                <ul class="dropdown-menu">
+                                    <li><a href="~/Manage/Seasons">Seasons &amp; Games</a></li>
+                                    <li><a href="~/Manage/Teams">Teams &amp; Players</a></li>
+                                    <li><a href="~/Manage/Referees">Referees</a></li>
+                                    <li class="divider"></li>
+                                    <li><a href="~/Manage/Users">Users</a></li>
+                                    <li><a href="~/Admin/Setup">Settings</a></li>
+                                </ul>
+                            </li>
+                        }
+                        <li @*class="active"*@><a href="~/Login?Action=Logoff">Sign Out</a></li>
+                    }
+                </ul>
+                @*@if (Page.Title == "Dashboard")
+                    {
+                        <form class="navbar-form pull-right" method="post">
+                            <input class="span2" type="text" placeholder="Email" name="email">
+                            <input class="span2" type="password" placeholder="Password" name="password">
+                            <button type="submit" name="cmd" value="Login" class="btn btn-default">Sign in</button>
+                        </form>
+                    }*@
+            </div>
+
+            <!--/.nav-collapse -->
+        </div>
+    </div>
+
+    <div class="container">
+        <img src="~/assets/img/bbscoreboard.png" title="@appName" class="visible-print" />
+
+        @if (Page.Title == "Dashboard")
+        {
+            <img src="~/assets/img/bbscoreboardbanner.jpg" class="img-responsive" />
+            <div class="page-header">
+                <h1>@appName <small>@Page.Title</small></h1>
+            </div>
+        }
+        else if (!string.Equals(subTitle, "Scoreboard", StringComparison.InvariantCultureIgnoreCase))
+        {
+            <div class="page-header hidden-print">
+                <h1>@Page.Title&nbsp;<small>@subTitle</small></h1>
+            </div>
+        }
+        @RenderBody()
+        @*@Html.Raw(titleExtra)*@
+        <hr>
+        <footer>
+            <p>&copy; @appName @DateTime.Now.Year</p>
+        </footer>
+        @*<div class="footer">
+            <p>Copyright &copy; BB Cup @DateTime.Now.Year</p>
+        </div>*@
+    </div>
+    <!-- /container -->
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="~/assets/js/jquery.min.js"></script>
+    <script src="~/assets/bootstrap/js/bootstrap.min.js"></script>
+    <script src="~/assets/js/holder.js"></script>
+
+    @RenderSection("footer", required: false)
+</body>
+</html>

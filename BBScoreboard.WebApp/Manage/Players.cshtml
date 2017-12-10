@@ -1,0 +1,141 @@
+﻿@using BBScoreboard
+@{
+    
+    Layout = "~/_SiteLayout.cshtml";
+
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    var db = new BBScoreboardEntities();
+    var query = new WebQuery(this);
+
+    var teamId = query.GetInt32("Team");
+    var team = db.UCTeams.Single(i => i.Id == teamId);
+
+    var items = db.UCPlayers.Where(i => i.TeamId == teamId);
+    var positions = db.BasketballPositions;
+
+    //Page.Title = "Manage Players";
+    Page.Title = "Team " + team.Name;
+    //PageData["SubTitle"] = "Manage";
+    PageData["SubTitle"] = "Manage Players";
+    
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (cmd.Equals("Delete"))
+        {
+            if (!string.IsNullOrEmpty(Request["id"]))
+            {
+                var ids = new List<int>(Array.ConvertAll(
+                    Request["id"].Split(','), new Converter<string, int>(int.Parse)));
+
+                var playersToRemove = db.UCPlayers.Where(s => ids.Contains(s.Id));
+                foreach (var player in playersToRemove)
+                {
+                    PlayerHelper.Delete(player.Id, db);
+                }
+                db.SaveChanges();
+            }
+        }
+    }
+}
+
+@section head{
+    <style type="text/css">
+        .edit, .delete {
+            display: none;
+        }
+
+        th.chk {
+            width: 15px;
+        }
+    </style>
+}
+
+<form method="post">
+    <a href="~/Manage/PlayerEntry?Team=@team.Id" class="btn btn-default">New Player</a>
+    <button type="button" class="btn btn-warning edit" id="btn-edit" value="~/Manage/PlayerEntry?Team=@team.Id">Edit</button>
+    <button type="submit" class="btn btn-danger delete" name="cmd" value="Delete" onclick="return confirm('Delete selected items?')">Delete</button>
+    <a href="~/Manage/Teams" class="btn btn-default pull-right">Back to Teams</a>
+    @if (items.Count() > 0)
+    {
+        <table class="table table-responsive table-striped">
+            <thead>
+                <tr>
+                    <th class="chk">
+                        <input type="checkbox" name="chk-main" value="chk-main" class="chk-main" /></th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Number</th>
+                    <th>Position</th>
+                    <th>Active</th>
+                    <th class="muted">Id</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    var position = item.PositionId > 0 ? positions.Single(i => i.Id == item.PositionId).Name : "";
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="chk-item" name="id" value="@item.Id" /></td>
+                        <td><a href="~/Manage/PlayerEntry?Team=@team.Id&amp;Player=@item.Id" @(item.Active ? "" : "class=muted")>@item.FirstName</a></td>
+                        <td>@item.LastName</td>
+                        <td>@item.PlayerNumber</td>
+                        <td>@position</td>
+                        <td><i class="glyphicon glyphicon-@(item.Active ? "ok" : "remove")"></i></td>
+                        <td class="muted">@item.Id</td>
+                        @*<td><a href="~/Manage/Players?Team=@item.Id">View Players</a></td>*@
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</form>
+
+@section footer {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var isBatchChange = false;
+
+            // Show/Hide Edit/Delete buttons
+            var showHideButtons = function () {
+                if (!isBatchChange) { // batch check/uncheck should not be running
+                    //var showEdit = false;
+                    var showDelete = false;
+                    var checkedItems = $('.chk-item:checked');
+                    var checkedCount = checkedItems.length;
+                    if (checkedCount == 1) {
+                        //showEdit = true;
+                        showDelete = true;
+                    }
+                    else if (checkedCount > 1) {
+                        //showEdit = false;
+                        showDelete = true;
+                    }
+
+                    //$('.edit').css('display', showEdit ? 'inline-block' : 'none');
+                    $('.delete').css('display', showDelete ? 'inline-block' : 'none');
+                }
+            }
+
+            // Check/Uncheck all
+            $('.chk-main').click(function () {
+                isBatchChange = true;
+                $('.chk-item').attr('checked', $(this).is(':checked'));
+                isBatchChange = false;
+                showHideButtons();
+            });
+
+            // Trigger for any checked/unchecked item
+            $('.chk-item').change(function () {
+                showHideButtons();
+            });
+
+            //$('#btn-edit').click(function () {
+            //    var checkedItem = $('.chk-item:checked');
+            //    location.href = $(this).val() + '&Player=' + checkedItem[0].value;
+            //});
+        });
+    </script>
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="2dc44125f8664fc688b2931052f95645" Name="Diagram1" ZoomLevel="100">
+        <EntityTypeShape EntityType="Models.BasketballPosition" Width="1.5" PointX="0.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Models.UCGamePlayerStat" Width="1.5" PointX="0.75" PointY="3.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Models.UCSeason" Width="1.5" PointX="4.75" PointY="0.75" IsExpanded="true" />
+        <EntityTypeShape EntityType="Models.UCGameTeamStat" Width="1.5" PointX="7.125" PointY="1" />
+        <EntityTypeShape EntityType="Models.UCGameplayAction" Width="1.5" PointX="6.875" PointY="3.75" />
+        <EntityTypeShape EntityType="Models.UserProfile" Width="1.5" PointX="8.75" PointY="3.625" />
+        <EntityTypeShape EntityType="Models.UCPlayer" Width="1.5" PointX="3.375" PointY="5.75" />
+        <EntityTypeShape EntityType="Models.UCTeam" Width="1.5" PointX="5.375" PointY="8.75" />
+        <EntityTypeShape EntityType="Models.UCGame" Width="1.5" PointX="7.375" PointY="8.75" />
+        <EntityTypeShape EntityType="Models.AppConfig" Width="1.5" PointX="9.375" PointY="0.75" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

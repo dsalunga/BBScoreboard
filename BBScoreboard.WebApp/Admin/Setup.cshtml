@@ -1,0 +1,126 @@
+﻿@using BBScoreboard
+@{
+    Page.Title = "App Setup";
+    Layout = "~/_SiteLayout.cshtml";
+    PageData["SubTitle"] = "Admin";
+
+    if (!AppHelper.CheckLogin(this, true))
+    {
+        return;
+    }
+
+    var updateDone = false;
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (cmd.Equals("Reset"))
+        {
+            HttpRuntime.UnloadAppDomain();
+            Response.Redirect("~/Admin/Setup");
+            return;
+        }
+        else if (cmd.Equals("ResetDates"))
+        {
+            var newDate = DateTime.UtcNow.AddDays(-1);
+            var db = new BBScoreboardEntities();
+            foreach (var ps in db.UCGamePlayerStats)
+            {
+                if (ps.LastUpdate > newDate)
+                {
+                    ps.LastUpdate = newDate;
+                }
+            }
+
+            foreach (var ts in db.UCGameTeamStats)
+            {
+                if (ts.LastUpdate > newDate)
+                {
+                    ts.LastUpdate = newDate;
+                }
+            }
+
+            foreach (var game in db.UCGames)
+            {
+                if (game.LastUpdateForRefresh > newDate)
+                {
+                    game.LastUpdateForRefresh = newDate;
+                }
+
+                if (game.LastUpdate > newDate)
+                {
+                    game.LastUpdate = newDate;
+                }
+
+                if (game.LastActivityDate > newDate)
+                {
+                    game.LastActivityDate = newDate;
+                }
+            }
+
+            db.SaveChanges();
+        }
+        else if (cmd.Equals("Update"))
+        {
+            AppHelper.EnableTimer = DataHelper.GetBool(Request[AppHelper.C_ENABLE_TIMER], false);
+            AppHelper.ShowAllActions = DataHelper.GetBool(Request[AppHelper.C_SHOW_ALL_ACTIONS], false);
+
+            updateDone = true;
+        }
+    }
+}
+
+
+<form method="post">
+    <div class="row">
+        <div class="col-md-4">
+            <h3>Application</h3>
+            <button type="submit" name="cmd" value="Reset" class="btn btn-danger"
+                    onclick="return confirm('This will reset all cache and all users will be logged off. Reset application?');">
+                <span class="glyphicon glyphicon-refresh icon-white"></span>&nbsp;Reset
+            </button>
+            &nbsp;
+            <button type="submit" name="cmd" value="ResetDates" class="btn btn-danger"
+                    onclick="return confirm('This will reset all game dates. Reset game dates?');">
+                <span class="glyphicon glyphicon-refresh icon-white"></span>&nbsp;Fix Dates
+            </button>
+        </div>
+
+        <div class="col-md-4">
+            <h3>Sync Data</h3>
+            <button type="submit" name="cmd" value="Reset" class="btn btn-danger"
+                    onclick="return confirm('This will overwrite target data and cannot be undone. Sync local to remote?');">
+                <span class="glyphicon glyphicon-upload icon-white"></span>&nbsp;Local <span class="icon-chevron-right icon-white"></span>&nbsp;Server
+            </button>
+            &nbsp;
+            <button type="submit" name="cmd" value="Reset" class="btn btn-info"
+                    onclick="return confirm('This will overwrite target data and cannot be undone. Sync remote to local?');">
+                <span class="glyphicon glyphicon-download icon-white"></span>&nbsp;Server <span class="icon-chevron-right icon-white"></span>&nbsp;Local
+            </button>
+        </div>
+    </div>
+    <hr />
+    <div class="row">
+        <div class="col-md-12">
+            <h3>General Settings</h3>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="EnableTimer" value="1" checked="@AppHelper.EnableTimer"> Enable Game Timer
+                </label>
+            </div>
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" name="ShowAllActions" value="1" checked="@AppHelper.ShowAllActions"> Gameplay: Display all actions
+                </label>
+            </div>
+            <div class="form-group">
+                <div class="controls">
+                    <button type="submit" name="cmd" value="Update" class="btn btn-primary">Save changes</button>
+                </div>
+            </div>
+            @if (updateDone)
+            {
+                <div class="alert alert-success">Update done.</div>
+            }
+        </div>
+    </div>
+</form>

@@ -1,0 +1,35 @@
+﻿.dropdown-backdrop {
+    display: none;
+}
+
+/********Bootstrap Override***********/
+.navbar .brand {
+    padding: 6px 20px 6px;
+}
+
+.modal-backdrop, .modal-backdrop.fade.in {
+    opacity: .2;
+    filter: alpha(opacity=20);
+}
+
+
+/********Error Validation***********/
+.field-validation-error {
+    color: #c12b45;
+}
+
+.icon-white, .icon-white a {
+  color: #fff;
+}
+
+.footer {
+  padding-top: 40px;
+  padding-bottom: 40px;
+  margin-top: 40px;
+  border-top: 1px solid #eee;
+}
+
+.form-horizontal .form-group {
+    margin-left: 0;
+    margin-right: 0
+}

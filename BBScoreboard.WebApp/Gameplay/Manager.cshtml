@@ -1,0 +1,338 @@
+﻿@using System.Web.Script.Serialization
+@using System.Text
+@using BBScoreboard
+@{
+    Layout = "~/_SiteLayout.cshtml";
+
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    var query = new WebQuery(this);
+    var gameId = query.GetId("Game");
+    if (gameId == -1)
+    {
+        Response.Redirect("~/", false);
+        return;
+    }
+
+    var gameplay = GameplayModel.Create(gameId);
+    var game = gameplay.Game;
+    var showAllActions = Session["ShowAllActions"] != null ? (bool)Session["ShowAllActions"] : AppHelper.ShowAllActions;
+    var showOverallStats = Session["ShowOverallStats"] != null ? Session["ShowOverallStats"].ToString() : "0";
+
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (!game.IsStarted)
+        {
+            if (cmd.Equals("Start"))
+            {
+                var ids0 = DataHelper.ParseCommaSeparatedIdList(Request["players0"]);
+                var ids1 = DataHelper.ParseCommaSeparatedIdList(Request["players1"]);
+                var smm = DataHelper.GetInt32(Request["smm"], 0);
+                var autoStart = DataHelper.GetBool(Request["auto-timer"], false);
+
+                //gameplay.Initialize();
+                gameplay.Start(ids0, ids1, smm, autoStart);
+
+                query.Redirect();
+                return;
+            }
+        }
+        else
+        {
+            if (cmd.Contains("Reset"))
+            {
+                gameplay.ResetGame();
+                query.Redirect();
+                return;
+            }
+            else if (cmd.Contains("Lock"))
+            {
+                game.IsEnded = !game.IsEnded;
+                game.LastUpdateForRefresh = DateTime.UtcNow;
+                gameplay.Db.SaveChanges();
+                query.Redirect();
+                return;
+            }
+            else if (cmd.Equals("UpdateGame"))
+            {
+                var quarter = DataHelper.GetInt32(Request["quarter"]);
+                Session["ShowAllActions"] = DataHelper.GetBool(Request["go-show-all-actions"], false);
+                Session["ShowOverallStats"] = Request["go-show-overall-stats"] ?? "0";
+
+                var timeLeft = new DateTime();
+                var timeLastModified = new DateTime();
+                var updateTime = DataHelper.GetBool(Request["go-time-update"], false);
+                if (updateTime)
+                {
+                    var mm = DataHelper.GetInt32(Request["mm"], 0);
+                    var ss = DataHelper.GetInt32(Request["ss"], 0);
+                    var ms = DataHelper.GetInt32(Request["ms"], 0);
+
+                    timeLeft = new DateTime(2000, 1, 1, 0, mm, ss, ms, DateTimeKind.Utc);
+                    timeLastModified = DateTime.UtcNow;
+                }
+
+
+                var ts0 = new UCGameTeamStat();
+                var ts1 = new UCGameTeamStat();
+                var updateScore = Request["go-update-score"] == "1";
+                if (updateScore)
+                {
+                    Func<int, UCGameTeamStat> UpdateTeamScore = (index) =>
+                    {
+                        var prep = string.Format("t{0}_q", index);
+                        var team = new UCGameTeamStat();
+                        team.Q1 = DataHelper.GetInt32(Request[prep + 1]);
+                        team.Q2 = DataHelper.GetInt32(Request[prep + 2]);
+                        team.Q3 = DataHelper.GetInt32(Request[prep + 3]);
+                        team.Q4 = DataHelper.GetInt32(Request[prep + 4]);
+                        team.LastUpdate = DateTime.UtcNow;
+
+                        return team;
+                    };
+
+                    ts0 = UpdateTeamScore(0);
+                    ts1 = UpdateTeamScore(1);
+                }
+
+                GameHelper.UpdateGame(gameId, quarter, updateScore, ts0, ts1, updateTime, timeLeft, timeLastModified, gameplay);
+
+                query.Redirect();
+                return;
+
+            }
+            else if (cmd.Equals("Subs"))
+            {
+                var subsIds = Request["chk-subs"];
+                if (!string.IsNullOrEmpty(subsIds))
+                {
+                    var ids = DataHelper.ParseCommaSeparatedIdList(subsIds);
+                    if (ids.Count > 0)
+                    {
+                        foreach (var id in ids)
+                        {
+                            var stat = gameplay.Db.UCGamePlayerStats.Find(id);
+                            if (stat != null)
+                            {
+                                stat.InFloor = !stat.InFloor;
+                            }
+                        }
+
+                        game.LastUpdateForRefresh = DateTime.UtcNow;
+                        gameplay.Db.SaveChanges();
+                    }
+                }
+
+                query.Redirect();
+                return;
+            }
+            else if (cmd.Equals("Substitute"))
+            {
+                var sourceTeamId = DataHelper.GetInt32(Request["subs-team"]);
+                var sourcePlayerId = DataHelper.GetInt32(Request["subs-player"]);
+                var targetPlayerId = DataHelper.GetInt32(Request["po-subs-new"]);
+
+                if (sourcePlayerId > 0 && targetPlayerId > 0 && sourceTeamId > 0)
+                {
+                    var subsTeam = gameplay.TeamModels.Find(i => i.TeamId == sourceTeamId);
+                    var stats = subsTeam.QuarterPlayerStats;
+                    var sourcePlayer = stats.FirstOrDefault(i => i.PlayerId == sourcePlayerId);
+                    var targetPlayer = stats.FirstOrDefault(i => i.PlayerId == targetPlayerId);
+
+                    if (sourcePlayer.InFloor != targetPlayer.InFloor)
+                    {
+                        sourcePlayer.InFloor = !sourcePlayer.InFloor;
+                        targetPlayer.InFloor = !targetPlayer.InFloor;
+
+                        game.LastActivityDate = DateTime.UtcNow;
+                        game.LastUpdateForRefresh = DateTime.UtcNow;
+                        gameplay.Db.SaveChanges();
+                    }
+                }
+
+                query.Redirect();
+                return;
+            }
+        }
+    }
+
+    var subTitle = "Scoreboard";
+    PageData["SubTitle"] = subTitle;
+    Page.Title = "Game " + game.GameNumber;
+
+    var user = AppHelper.GetCurrentUser();
+    var recentActions = new List<IEnumerable<UCGameplayAction>>();
+}
+
+@section head{
+    <link href="~/assets/css/gameplay.css" rel="stylesheet" />
+}
+
+<div class="page-header">
+    @if (game.IsStarted)
+    {
+        <div class="pull-right">
+            <div id="panelSubs" style="display: none">
+                <button class="btn btn-success" id="cmdSubsDone">Done</button>
+                <button class="btn btn-default" id="cmdSubsCancel">Cancel</button>
+            </div>
+            <h1 id="panelTimer" class="game-settings">
+                @if (AppHelper.EnableTimer && !game.IsEnded && user.Access != (int)AccessType.ReadOnly)
+                {
+                    <button class="btn btn-lg @(game.IsTimeOn ? "btn-danger" : "btn-success") @(game.TimeLeft.TimeOfDay == UCConstants.BaseDate.TimeOfDay ? "disabled" : "")" id="btn-timer">@(game.IsTimeOn ? "STOP" : "START")</button>
+                }
+                &nbsp;<span class="game-handle">
+                    <span class="badge" id="currQuarter">@gameplay.GetQuarterString()</span>&nbsp;<span id="lbl-time">@game.TimeLeft.ToString("mm:ss")</span><span class="muted @(game.TimeLeft.Minute < 2 && game.TimeLeft.TimeOfDay != UCConstants.BaseDate.TimeOfDay ? "" : "hide")" id="lbl-time-ms" style="font-size: 22px; font-weight: normal"> @game.TimeLeft.ToString("fff")</span>
+                    @if (user.Access != (int)AccessType.ReadOnly) {
+                    <span class="glyphicon glyphicon-cog" style="font-size: 30px;"></span>
+                    }
+                </span>
+            </h1>
+        </div>
+    }
+    <h1 style="display: inline">@Page.Title&nbsp;<small>@subTitle</small></h1>
+    @if (game.IsEnded)
+    { <span class="label label-danger">Locked</span>}
+</div>
+
+@if (game.IsStarted)
+{
+    var currentTimer = GameHelper.ComputeTimeRemaining(game);
+    var isTimerOn = currentTimer.Ticks == UCConstants.BaseDate.Ticks ? false : game.IsTimeOn;
+
+    var ts = new UCGameTeamStat[2];
+    ts[0] = gameplay.TeamModels[0].Stat;
+    ts[1] = gameplay.TeamModels[1].Stat;
+
+    var tsCss = new bool[2];
+    tsCss[0] = ts[0].LastUpdate > ts[1].LastUpdate;
+    tsCss[1] = ts[1].LastUpdate > ts[0].LastUpdate;
+
+    if (isTimerOn != game.IsTimeOn)
+    {
+        game.IsTimeOn = isTimerOn;
+        game.TimeLastModified = DateTime.UtcNow;
+        game.TimeLeft = currentTimer;
+        gameplay.Db.SaveChanges();
+    }
+    <form id="formPlayers" method="post" style="margin: 0">
+        <input type="hidden" name="cmd" value="Subs" />
+        <div class="row">
+            @for (int i = 0; i < 2; i++)
+            {
+                var teamModel = gameplay.TeamModels[i];
+                var team = teamModel.Team;
+                var playerModels = teamModel.PlayerModels;
+
+                var actions = !showAllActions ? teamModel.QuarterActions.OrderByDescending(y => y.ActionDate).Take(20)
+                    : teamModel.Actions.OrderByDescending(y => y.ActionDate);
+                recentActions.Add(actions);
+
+                var firstAction = actions.FirstOrDefault();
+
+                var pstats = showOverallStats != "1" ? teamModel.QuarterPlayerStats : teamModel.OverallPlayerStats;
+                var stat = teamModel.Stat;
+
+                <div class="col-md-6">
+                    <div>
+                        <div style="width: 100%; height: 20px; background-color: @team.TeamColor;">&nbsp;</div>
+                    </div>
+                    <table class="table score table-condensed game-handle">
+                        <tbody>
+                            <tr id="score@(team.Id)" class="ts-row no-border-top @(tsCss[i] ? " recent-action" : "")">
+                                <td class="score-name">
+                                    @team.Name
+                                </td>
+                                <td class="score-q">
+                                    <span class="label label-default score-q1">@(stat.Q1 > 0 ? stat.Q1.ToString() : "")</span>
+                                </td>
+                                <td class="score-q">
+                                    <span class="label label-default score-q2">@(stat.Q2 > 0 ? stat.Q2.ToString() : "")</span>
+                                </td>
+                                <td class="score-q">
+                                    <span class="label label-default score-q3">@(stat.Q3 > 0 ? stat.Q3.ToString() : "")</span>
+                                </td>
+                                <td class="score-q">
+                                    <span class="label label-default score-q4">@(stat.Q4 > 0 ? stat.Q4.ToString() : "")</span>
+                                </td>
+                                <td class="score-total"><span class="label label-default label-inverse">@TeamHelper.GetTotalPoints(stat)</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    @for (int y = 0; y < 2; y++)
+                    {
+                        <table class="table table-striped table-hover table-stats @(y==0 ? "in-floor": "in-bench")">
+                            <thead>
+                                <tr>
+                                    <td class="ps-chk"></td>
+                                    <td colspan="2">@Html.Raw(y == 0 ? "<strong>FLOOR</strong>" : "BENCH")</td>
+                                    <td>PTS</td>
+                                    <td>RB</td>
+                                    <td>AST</td>
+                                    <td>STL</td>
+                                    <td>BLK</td>
+                                    <td>TO</td>
+                                    <td>PF</td>
+                                    <td>TF</td>
+                                </tr>
+                            </thead>
+                            <tbody data-team-id="@team.Id" class="tps-@(team.Id)">
+                                @foreach (var pstat in pstats)
+                                {
+                                    if ((y == 0 && pstat.InFloor) || (y == 1 && !pstat.InFloor))
+                                    {
+                                        var player = gameplay.Db.UCPlayers.Find(pstat.PlayerId);
+                                        if (player != null)
+                                        {
+                                            <tr class="player-handle @(firstAction != null && player.Id == firstAction.PlayerId ? "recent-action" : "")" data-player-id="@player.Id" id="ps@(player.Id)">
+                                                <td class="ps-chk">
+                                                    <input type="checkbox" name="chk-subs" value="@pstat.Id" />
+                                                </td>
+                                                <td class="ps-no"><span class="badge @(y==0 ? "badge-inverse" : "")">@player.PlayerNumber</span></td>
+                                                <td>
+                                                    <strong>@player.FirstName.Substring(0, 1). @player.LastName</strong>
+                                                </td>
+                                                <td class="ps-PTS">@PlayerHelper.GetPoints(pstat)</td>
+                                                <td class="ps-RB">@PlayerHelper.GetRebounds(pstat)</td>
+                                                <td class="ps-AST">@pstat.ASSIST</td>
+                                                <td class="ps-STL">@pstat.STEAL</td>
+                                                <td class="ps-BLK">@pstat.BLOCK</td>
+                                                <td class="ps-TO">@pstat.TURNOVER</td>
+                                                <td class="ps-PF">@pstat.FOULPER</td>
+                                                <td class="ps-TF">@pstat.FOULTECH</td>
+                                            </tr>
+                                        }
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            }
+        </div>
+    </form>
+    @RenderPage("_PlayerActions.cshtml", new { Model, User = user, Game = game, GamePlay = gameplay, RecentActions = recentActions, ShowAllActions = showAllActions })
+    if (!game.IsEnded && user.Access != (int)AccessType.ReadOnly)
+    {
+        @RenderPage("_ActionEditor.cshtml")
+    }
+
+    if (user.Access != (int)AccessType.ReadOnly) {
+        @RenderPage("_GameOptions.cshtml", new { Model, User = user, Game = game, GamePlay = gameplay })
+    }
+    
+    @section footer{
+        <script src="~/assets/js/jquery-ui.custom.min.js"></script>
+        @RenderPage("_ManagerScript.cshtml", new { Model, Game = game, GamePlay = gameplay, ShowAllActions = showAllActions, ShowOverallStats = showOverallStats })
+    }
+}
+else
+{
+    @RenderPage("_StartingFive.cshtml", new { Model, Game = game, GamePlay = gameplay, RenderPage = true })
+
+    @section footer {
+        @RenderPage("_StartingFive.cshtml", new { Model, Game = game, GamePlay = gameplay, RenderPage = false })
+    }
+}

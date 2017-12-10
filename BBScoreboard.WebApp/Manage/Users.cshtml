@@ -1,0 +1,129 @@
+﻿@using BBScoreboard
+@{
+    Layout = "~/_SiteLayout.cshtml";
+
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+    
+    var db = new BBScoreboardEntities();
+    var query = new WebQuery(this);
+
+    Page.Title = "Users";
+    PageData["SubTitle"] = "Manage";
+
+    var items = db.UserProfiles;
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (cmd.Equals("Delete"))
+        {
+            var id = Request["id"];
+            if (!id.IsEmpty())
+            {
+                var ids = DataHelper.ParseCommaSeparatedIdList(id);
+                foreach (var userId in ids)
+                {
+                    var item = items.Find(userId);
+                    AppHelper.Delete(item.Email);
+                }
+            }
+        }
+    }
+}
+
+@section head{
+    <style type="text/css">
+        .edit, .delete {
+            display: none;
+        }
+
+        th.chk {
+            width: 15px;
+        }
+    </style>
+}
+
+<form method="post">
+    <a href="~/Manage/UserEntry" class="btn btn-default">New User</a>
+    @*<button type="button" class="btn btn-warning edit" id="btn-edit" value="~/Manage/PlayerEntry?Team=@team.Id">Edit</button>*@
+    <button type="submit" class="btn btn-danger delete" name="cmd" value="Delete" onclick="return confirm('Delete selected items?')">Delete</button>
+    @if (items.Count() > 0)
+    {
+        <table class="table table-responsive table-striped">
+            <thead>
+                <tr>
+                    <th class="chk">
+                        <input type="checkbox" name="chk-main" value="chk-main" class="chk-main" /></th>
+                    <th>Email</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Access</th>
+                    <th class="muted">Id</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    var access = Manage.GetAccessType(item.Access);
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="chk-item" name="id" value="@item.UserId" /></td>
+                        <td><a href="~/Manage/UserEntry?User=@item.UserId">@item.Email</a></td>
+                        <td>@item.FirstName</td>
+                        <td>@item.LastName</td>
+                        <td>@access</td>
+                        <td class="muted">@item.UserId</td>
+                        <td><a href="~/Manage/UserPassword?User=@item.UserId" class="btn btn-xs btn-info"><strong>Password</strong></a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</form>
+
+@section footer {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var isBatchChange = false;
+
+            // Show/Hide Edit/Delete buttons
+            var showHideButtons = function () {
+                if (!isBatchChange) { // batch check/uncheck should not be running
+                    //var showEdit = false;
+                    var showDelete = false;
+                    var checkedItems = $('.chk-item:checked');
+                    var checkedCount = checkedItems.length;
+                    if (checkedCount == 1) {
+                        //showEdit = true;
+                        showDelete = true;
+                    }
+                    else if (checkedCount > 1) {
+                        //showEdit = false;
+                        showDelete = true;
+                    }
+
+                    //$('.edit').css('display', showEdit ? 'inline-block' : 'none');
+                    $('.delete').css('display', showDelete ? 'inline-block' : 'none');
+                }
+            }
+
+            // Check/Uncheck all
+            $('.chk-main').click(function () {
+                isBatchChange = true;
+                $('.chk-item').attr('checked', $(this).is(':checked'));
+                isBatchChange = false;
+                showHideButtons();
+            });
+
+            // Trigger for any checked/unchecked item
+            $('.chk-item').change(function () {
+                showHideButtons();
+            });
+
+            //$('#btn-edit').click(function () {
+            //    var checkedItem = $('.chk-item:checked');
+            //    location.href = $(this).val() + '&Player=' + checkedItem[0].value;
+            //});
+        });
+    </script>
+}

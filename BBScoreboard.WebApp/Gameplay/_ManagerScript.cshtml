@@ -1,0 +1,859 @@
+﻿@using System.Text
+@using BBScoreboard
+@{
+    UCGame game = Page.Game;
+    GameplayModel gameplay = Page.GamePlay;
+    bool showAllActions = Page.ShowAllActions;
+    string showOverallStats = Page.ShowOverallStats;
+}
+
+<script>
+    var gameplay;
+
+    $(document).ready(function () {
+        var showAlert = function(msg, title){
+            if(console){
+                console.log(msg); //alert(msg);
+            }
+        }
+        var pageRefresh = function(){
+            location.href = location.href;
+        }
+        var prependZero = function(n1, count){
+            return ('00' + n1).slice(count*-1);
+        }
+        @*console.log(new Date('@game.TimeLastModified.ToUniversalTime()'));*@
+
+
+        // --- On Load Routines ---
+        for(var i=0;i<60; i++){
+            $('#mm').append(new Option(i, i));
+            $('#ss').append(new Option(i, i));
+
+            $('#mm2').append(new Option(i, i));
+            $('#ss2').append(new Option(i, i));
+        }
+        $('#mm').val(@game.TimeLeft.Minute);
+        $('#ss').val(@game.TimeLeft.Second);
+
+        for(var i=0;i<1000; i++){
+            $('#ms').append(new Option(i, i));
+        }
+        $('#ms').val(@game.TimeLeft.Millisecond);
+
+
+        @{
+            var sb = new StringBuilder();
+            var sb2 = new StringBuilder();
+            var sb3 = new StringBuilder();
+
+            for (int i = 0; i < 2; i++)
+            {
+                var teamModel = gameplay.TeamModels[i];
+                var team = teamModel.Team;
+                var tstat = teamModel.Stat;
+                var playerModels = teamModel.PlayerModels;
+
+                var players = new StringBuilder();
+                foreach (var pm in playerModels)
+                {
+                    var p = pm.Player;
+                    var ps = pm.Stat;
+                    if (p != null && ps != null)
+                    {
+                        players.AppendLine("p" + pm.PlayerId + ": {id: " + pm.PlayerId + ", teamId: " + team.Id + ", inFloor: " + (ps.InFloor ? "true" : "false") + ", number: " + p.PlayerNumber + ", firstName: '" + p.FirstName + "', lastName: '" + p.LastName + "'},");
+                    }
+                }
+
+                //JavaScriptSerializer serializer = new JavaScriptSerializer();
+                //var json = serializer.Serialize(playerStats);
+                sb.AppendLine("t" + team.Id + ": { id: " + team.Id + ", players: {" + players + "}},");
+
+
+                var cbo_id = string.Format("t{0}_q", i);
+                sb2.AppendFormat("$('#{0}{1}').append(new Option(i, i));", cbo_id, 1);
+                sb2.AppendFormat("$('#{0}{1}').append(new Option(i, i));", cbo_id, 2);
+                sb2.AppendFormat("$('#{0}{1}').append(new Option(i, i));", cbo_id, 3);
+                sb2.AppendFormat("$('#{0}{1}').append(new Option(i, i));", cbo_id, 4);
+
+                sb3.AppendFormat("$('#{0}{1}').val({2});", cbo_id, 1, tstat.Q1);
+                sb3.AppendFormat("$('#{0}{1}').val({2});", cbo_id, 2, tstat.Q2);
+                sb3.AppendFormat("$('#{0}{1}').val({2});", cbo_id, 3, tstat.Q3);
+                sb3.AppendFormat("$('#{0}{1}').val({2});", cbo_id, 4, tstat.Q4);
+            }
+        }
+
+        for(var i=0; i<=250; i++){
+            @Html.Raw(sb2);
+        }
+        @Html.Raw(sb3);
+
+        @if(AppHelper.EnableTimer){
+        <text>
+        var goToggleTimeUpdate = function (){
+            var chk = $('#goUpdateTime').is(':checked');
+            $('#mm').attr("disabled", !chk);
+            $('#ss').attr("disabled", !chk);
+            $('#ms').attr("disabled", !chk);
+        }
+        $('#goUpdateTime').change(goToggleTimeUpdate);
+        goToggleTimeUpdate();
+        </text>
+                }
+
+        var goToggleUpdateScore = function (){
+            var chk = $('#goUpdateScore').is(':checked');
+
+            for(var i=0; i<2; i++){
+                for(var y=1; y<=4; y++){
+                    $('#t' + i + '_q' + y).attr("disabled", !chk);
+                }
+            }
+        }
+        $('#goUpdateScore').change(goToggleUpdateScore);
+        goToggleUpdateScore();
+
+        $("#goShowAllActions").attr('checked', @(!showAllActions ? "false" : "true"));
+        $("#goShowOverallStats").attr('checked', @(showOverallStats != "1"? "false" : "true"));
+
+        // --- Gameplay Variables ---
+
+        gameplay = {
+            subsMode: false,
+            cteamId :-1,
+            cplayerId : -1,
+            lastUpdate : new Date(),
+            autoRefresh : $('#autoRefreshCheck').is(':checked'),
+            timerLastModified : new Date(Date.UTC(@game.TimeLastModified.Year, @game.TimeLastModified.Month-1, @game.TimeLastModified.Day, @game.TimeLastModified.Hour, @game.TimeLastModified.Minute, @game.TimeLastModified.Second, @game.TimeLastModified.Millisecond)),
+            timeLeft : new Date(Date.UTC(2000, 0, 1, 0, @game.TimeLeft.Minute, @game.TimeLeft.Second, @game.TimeLeft.Millisecond)),
+            currentTimeLeft : new Date(Date.UTC(2000, 0, 1, 0, @game.TimeLeft.Minute, @game.TimeLeft.Second, @game.TimeLeft.Millisecond)),
+            baseDate : new Date(Date.UTC(2000,0,1,0,0,0)),
+            actionTypes: {
+                @foreach (var action in GameAction.Actions.Values)
+                        {
+                        @Html.Raw("'" + action.Id + "': {id:" + action.Id + ", text: '" + action.Text + "', code: '" + action.Code + "'},")
+                        }
+            },
+            ts : [@gameplay.TeamModels[0].TeamId, @gameplay.TeamModels[1].TeamId],
+            teams : {
+                @Html.Raw(sb)
+            },
+            game : {
+                IsTimeOn: @(game.IsTimeOn ? "true" : "false"),
+                CurrentQuarter: @(game.CurrentQuarter > 4 ? 4 : game.CurrentQuarter),
+                Id: @game.Id,
+                IsEnded: @(game.IsEnded ? "true" : "false")
+                },
+            tz : (new Date()).getTimezoneOffset()*60000*-1,
+            actionId : -1,
+            actionStatus : ''
+        };
+
+        //showAlert("timer on: " + gameplay.timerOn);
+
+        var getQuarterString = function(){
+            if (gameplay.game.CurrentQuarter > 4)
+                return 'OT' + (gameplay.game.CurrentQuarter - 4);
+            else
+                return 'Q' + gameplay.game.CurrentQuarter;
+        }
+
+        @if(AppHelper.EnableTimer){
+        <text>
+        var toggleTimer = function(start){
+            gameplay.game.IsTimeOn = start; //!gameplay.timerOn;
+            gameplay.timerLastModified = new Date();
+            gameplay.timeLeft = gameplay.currentTimeLeft;
+            updateTimer(true, false);
+
+            var dataArgs = JSON.stringify({
+                gameId : gameplay.game.Id,
+                start : gameplay.game.IsTimeOn ? 1 : 0,
+                timeLeft: gameplay.timeLeft.toUTCString(),
+                tlMs: gameplay.timeLeft.getMilliseconds(),
+                timerLastModified: gameplay.timerLastModified.toUTCString(),
+                tlmMs: gameplay.timerLastModified.getMilliseconds()
+            });
+
+            //console.log('update timer:');
+            //console.log(dataArgs);
+
+            $.ajax({
+                type: "POST", url: "/GameplaySync.asmx/UpdateTimer",
+                data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                success: function (data) {
+                },
+                error: function (request, status, error) {
+                    showAlert("[UpdateTimer] An error has occurred, args: " + dataArgs, "Error");
+                }
+            });
+        }
+        </text>
+        }
+
+        var updateTimer = function(repaintBtn, repaintOnly){
+            if(repaintBtn){
+                $('#btn-timer').html(gameplay.game.IsTimeOn ? 'STOP' : 'START');
+                if(gameplay.game.IsTimeOn){
+                    $('#btn-timer').removeClass('btn-success').addClass('btn-danger');
+                }else{
+                    $('#btn-timer').removeClass('btn-danger').addClass('btn-success');
+                }
+            }
+
+            if(gameplay.game.IsTimeOn && !repaintOnly){
+                var remTimeMS = gameplay.timeLeft - ((new Date()) - gameplay.timerLastModified);
+                gameplay.currentTimeLeft = new Date(remTimeMS);
+
+                //console.log('currTimeLeft:' + gameplay.currentTimeLeft);
+                //console.log('timeLeft:' + gameplay.timeLeft);
+                //console.log('baseDate:' + gameplay.baseDate);
+                //console.log('timerLastModified:' + gameplay.timerLastModified);
+
+                if((gameplay.currentTimeLeft - gameplay.baseDate) > 0){
+                    $('#lbl-time').html(prependZero(gameplay.currentTimeLeft.getMinutes(),2) + ':' + prependZero(gameplay.currentTimeLeft.getSeconds(),2));
+
+                    if(gameplay.currentTimeLeft.getMinutes() < 2){
+                        $('#lbl-time-ms').html(" " + prependZero(gameplay.currentTimeLeft.getMilliseconds(),3));
+                        $('#lbl-time-ms').show();
+                        setTimeout(updateTimer, 100);
+                    }else{
+                        $('#lbl-time-ms').hide();
+                        setTimeout(updateTimer, 250);
+                    }
+                }else{
+                    gameplay.currentTimeLeft = new Date(Date.UTC(2000,0,1,0,0,0));
+                    $('#lbl-time').html('00:00');
+                    $('#btn-timer').addClass('disabled');
+                    $('#lbl-time-ms').hide();
+                    toggleTimer(false);
+                }
+            } else if(repaintOnly){
+                if(gameplay.game.IsTimeOn){
+                    var remTimeMS = gameplay.timeLeft - ((new Date()) - gameplay.timerLastModified);
+                    gameplay.currentTimeLeft = new Date(remTimeMS);
+                }
+
+                if((gameplay.currentTimeLeft - gameplay.baseDate) > 0){
+                    $('#lbl-time').html(prependZero(gameplay.currentTimeLeft.getMinutes(),2) + ':' + prependZero(gameplay.currentTimeLeft.getSeconds(),2));
+
+                    if(gameplay.currentTimeLeft.getMinutes() < 2){
+                        $('#lbl-time-ms').html(" " + prependZero(gameplay.currentTimeLeft.getMilliseconds(),3));
+                        $('#lbl-time-ms').show();
+                    }else{
+                        $('#lbl-time-ms').hide();
+                    }
+
+                    if($('#btn-timer').hasClass('disabled')){
+                        $('#btn-timer').removeClass('disabled');
+                    }
+                }else{
+                    $('#lbl-time').html('00:00');
+                    $('#lbl-time-ms').hide();
+                }
+                //console.log('repaint: ' + gameplay.currentTimeLeft.getMilliseconds());
+            }
+        }
+
+        @if(AppHelper.EnableTimer){
+        <text>
+        $('#btn-timer').click(function(){
+            if(gameplay.baseDate < gameplay.timeLeft){
+                toggleTimer(!gameplay.game.IsTimeOn);
+            }
+        });
+        updateTimer();
+        </text>
+        }
+
+        var processUpdates = function(updates){
+            if(updates.return == 2){
+                pageRefresh();
+            } else if(updates.return == 1){
+                //console.log('new update: ');
+                //console.log(updates);
+
+                // game updates
+                if(updates.game){
+                    var resumeTimer = !gameplay.game.IsTimeOn && updates.game.IsTimeOn;
+                    gameplay.game = updates.game;
+                    gameplay.timeLeft = new Date(updates.game.TimeLeft);
+                    gameplay.currentTimeLeft = new Date(updates.game.TimeLeft);
+                    gameplay.timerLastModified = new Date(updates.game.TimeLastModified); //.getTime() + gameplay.tz);
+
+                    updateTimer(true, !resumeTimer);
+                    $('#currQuarter').html(getQuarterString());
+
+                    //console.log('after update gameplay: ');
+                    //console.log(gameplay);
+                }
+
+                // refresh team stats
+                for(var y=0; y<=1; y++){
+                    var tid = gameplay.ts[y];
+                    var t = updates['team' + tid]; // newly updated team obj
+                    if(t !== undefined){
+                        var team = gameplay['team' + tid];
+                        team.ts = t.ts;
+
+                        reflectPlayersStat(tid,t.ps);
+                        reflectTeamScore(team, tid);
+
+                        // update team.ps with the latest objects
+                        for(var i=0; i<team.ps.length; i++){
+                            for(var x=0;x<t.ps.length; x++){
+                                var ps = t.ps[x];
+                                if(team.ps[i].PlayerId == ps.PlayerId){
+                                    team.ps[i] = ps;
+                                    t.ps.splice(x,1);
+                                    break;
+                                }
+                            }
+                        }
+
+                        // insert new play by play actions
+                        //console.log(t.actions);
+                        if(t.actions.length > 0){
+                            for(var i=0; i<t.actions.length; i++){
+                                var actionModel = t.actions[i];
+                                if(actionModel.status == -1){
+                                    var action = actionModel.action;
+                                    var fChild = $('#actions' + tid + ' tr:first-child');
+                                    var newRow = '<tr ' + 'class="action-handle ' + (action.Status==1 ? '' : 'muted') + '" data-action-id="' + action.Id +'" id="action' + action.Id + '" data-action-status="' + action.Status +'">' + '><td>' + actionModel.text + '</td></tr>';
+                                    if(fChild.length > 0){
+                                        fChild.before(newRow);
+                                    }else{
+                                        $('#actions' + tid).html(newRow);
+                                    }
+
+                                    $('#action' + action.Id).click(actionHandler);
+
+                                    //console.log(action);
+                                }else{
+                                    // Undo/Redo
+                                    var fChild = $('#actions' + tid + ' tr#action' + actionModel.id);
+                                    if(actionModel.status == 1){
+                                        // used to be 0, a REDO
+                                        if(fChild.hasClass('muted')){
+                                            fChild.removeClass('muted');
+                                        }
+                                    }else{
+                                        // an UNDO
+                                        if(!fChild.hasClass('muted')){
+                                            fChild.addClass('muted');
+                                        }
+                                    }
+
+                                    fChild.data('action-status', actionModel.status);
+                                    fChild.find('td strong').html(actionModel.time);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                gameplay.lastUpdate = new Date(updates.lastUpdate);
+                //console.log('after delta: ' + gameplay.lastUpdate + ', ms: ' + gameplay.lastUpdate.getMilliseconds());
+            }
+        }
+
+        var checkLastActivity = function(){
+            if(gameplay.autoRefresh){
+                var dataArgs = JSON.stringify({
+                    gameId : gameplay.game.Id,
+                    "lastUpdate" : gameplay.lastUpdate.toUTCString()
+                });
+
+                $.ajax({
+                    type: "POST", url: "/GameplaySync.asmx/GetDelta",
+                    data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                    success: function (data) {
+                        if(data.d){
+                            var d = JSON.parse(data.d);
+                            if(d.return){
+                                //console.log('before delta: ' + gameplay.lastUpdate + ', ms: ' + gameplay.lastUpdate.getMilliseconds());
+                                processUpdates(d);
+                            }
+                        }
+
+                        if(gameplay.autoRefresh){
+                            setTimeout(checkLastActivity, 750);
+                        }
+                    },
+                    error: function (request, status, error) {
+                        showAlert("[SendAction] An error has occurred, args: " + dataArgs, "Error");
+                    }
+                });
+            }
+        }
+
+        $('#autoRefreshCheck').change(function(){
+            gameplay.autoRefresh = $(this).is(':checked');
+            checkLastActivity();
+        });
+
+        var actionHandler = function(){
+            gameplay.actionId = $(this).data('action-id');
+            gameplay.actionStatus = $(this).data('action-status');
+
+            if(gameplay.actionStatus == '1'){
+                $('#undoRedo span').text('UNDO');
+                $('#undoRedo').removeClass('btn-warning');
+                $('#undoRedo').addClass('btn-danger');
+            }else{
+                $('#undoRedo span').text('REDO');
+                $('#undoRedo').removeClass('btn-danger');
+                $('#undoRedo').addClass('btn-warning');
+            }
+
+            // Pre-set time
+            var actionTime = $(this).find('td strong').text().split(':');
+            var ss = parseInt(actionTime.pop());
+            var mm = parseInt(actionTime.pop());
+
+            $('#mm2').val(mm);
+            $('#ss2').val(ss);
+
+            $('#actionEditor #actionEditorLabel').text($(this).text());
+            $('#actionEditor').modal('show');
+            $('#mm2').focus();
+        }
+
+        //$('.play-by-play').on('click','tr.action-handle', actionHandler);
+        $('.action-handle').click(actionHandler);
+
+        $('#undoRedo').click(function(){
+            //var c = confirm('Are you sure you want to ' + (gameplay.actionStatus=='1' ? 'UNDO' : 'REDO') + ' this action?');
+            //if(c){
+            $('#actionEditor').modal('hide');
+
+            var dataArgs = JSON.stringify({
+                id : gameplay.actionId,
+                mm : -1,
+                ss : -1
+            });
+            $.ajax({
+                type: "POST", url: "/GameplaySync.asmx/UpdateAction",
+                data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                success: function (data) {
+
+                },
+                error: function (request, status, error) {
+                    showAlert("[UpdateAction] An error has occurred, args: " + dataArgs, "Error");
+                }
+            });
+            //}
+        });
+
+        $('#actionEditor .time-update').click(function(){
+            $('#actionEditor').modal('hide');
+
+            var dataArgs = JSON.stringify({
+                id : gameplay.actionId,
+                mm : $('#mm2').val(),
+                ss : $('#ss2').val()
+            });
+            $.ajax({
+                type: "POST", url: "/GameplaySync.asmx/UpdateAction",
+                data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                success: function (data) {
+
+                },
+                error: function (request, status, error) {
+                    showAlert("[UpdateAction] An error has occurred, args: " + dataArgs, "Error");
+                }
+            });
+        });
+
+        $('.player-handle').click(function () {
+            if(gameplay.subsMode){
+                // check/uncheck
+                var chk = $(this).find(">:first-child input");
+                if(!$(event.target).is('input')){
+                    chk.prop('checked', !chk.is(':checked'));
+                }
+                return;
+            }
+
+            var pid = $(this).data('player-id');
+            var tid = $(this).parent().data('team-id');
+            var player = gameplay.teams['t' + tid].players['p' + pid];
+
+            gameplay.cplayerId = pid;
+            gameplay.cteamId = tid;
+
+            $('#po-label').html(player.firstName + ' ' + player.lastName);
+            $('#po-number').html(player.number);
+
+            //$('#po-panel-subs').hide();
+            //$('#po-panel-actions').show();
+
+            // substitute
+            //$('#opSubsPlayer').val(pid);
+            //$('#opSubsTeam').val(tid);
+
+            //$('.op-subs-radio').hide();
+            //$('.op-subs-team-' + gameplay.cteamId).show();
+            //$('.op-subs-player-' + gameplay.cplayerId).hide();
+
+            $('#playerOptions').modal('show');
+        });
+
+        $('.game-handle').click(function () {
+            for(var i=0; i<2; i++){
+                var t = gameplay['team' + gameplay.ts[i]];
+                var ts = t.ts;
+
+                for(var y=1; y<=4; y++){
+                    $('#t' + i + '_q' + y).val(ts['Q' + y]);
+                }
+            }
+
+            if(gameplay.game.IsEnded == '1'){
+                $('#lockGame span').text('Unlock');
+                //$('#lockGame').removeClass('btn-danger');
+                //$('#lockGame').addClass('btn-warning');
+            }else{
+                $('#lockGame span').text('Lock');
+                //$('#lockGame').removeClass('btn-warning');
+                //$('#lockGame').addClass('btn-danger');
+            }
+
+            $('#quarter').val(gameplay.game.CurrentQuarter);
+            $('#mm').val(gameplay.currentTimeLeft.getMinutes());
+            $('#ss').val(gameplay.currentTimeLeft.getSeconds());
+            $('#ms').val(gameplay.currentTimeLeft.getMilliseconds());
+
+            $('#gameOptions').modal('show');
+        });
+
+        $('#cmdGameUpdate').click(function(){
+            var oldQuarter = gameplay.game.CurrentQuarter;
+            var newQuarter = parseInt($('#quarter').val());
+
+            if(oldQuarter != newQuarter
+                || @(showAllActions ? "true" : "false") != $('#goShowAllActions').is(':checked')
+                || '@(showOverallStats)' != ($('#goShowOverallStats').is(':checked')? '1' : '0')){
+                $('#formGameOptions').submit();
+                return;
+                //gameplay.game.CurrentQuarter = newQuarter;
+            }
+
+            var updateTime = $('#goUpdateTime').is(':checked');
+            var updateScore = $('#goUpdateScore').is(':checked');
+
+            // Update Timer
+            var timeLeft = gameplay.timeLeft;
+            if(updateTime){
+                var mm = parseInt($('#mm').val());
+                var ss = parseInt($('#ss').val());
+                var ms = parseInt($('#ms').val());
+
+                timeLeft = gameplay.currentTimeLeft;
+                timeLeft.setMinutes(mm, ss, ms);
+
+                gameplay.timeLeft = timeLeft;
+                gameplay.timerLastModified = new Date();
+                //updateTimer(true, false);
+            }
+
+            var ts0 = gameplay['team' + gameplay.ts[0]].ts;
+            var ts1 = gameplay['team' + gameplay.ts[1]].ts;
+            if(updateScore){
+                for(var y=1; y<=4; y++){
+                    ts0['Q' + y] = parseInt($('#t0_q' + y).val());
+                }
+
+                for(var y=1; y<=4; y++){
+                    ts1['Q' + y] = parseInt($('#t1_q' + y).val());
+                }
+            }
+
+            if(oldQuarter != newQuarter || updateTime || updateScore){
+                var dataArgs = JSON.stringify({
+                    gameId : gameplay.game.Id,
+                    quarter: gameplay.game.CurrentQuarter,
+
+                    updateTime: updateTime,
+                    timeLeft: timeLeft.toUTCString(),
+                    tlMs: timeLeft.getMilliseconds(),
+                    timerLastModified: gameplay.timerLastModified.toUTCString(),
+                    tlmMs: gameplay.timerLastModified.getMilliseconds(),
+
+                    updateScores: updateScore,
+                    ts0: ts0,
+                    ts1: ts1,
+                });
+
+                $.ajax({
+                    type: "POST", url: "/GameplaySync.asmx/UpdateGame",
+                    data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                    success: function (data) {
+                        // Do nothing
+                    },
+                    error: function (request, status, error) {
+                        showAlert("[UpdateGame] An error has occurred, args: " + dataArgs, "Error");
+                        // Must retry up to 3 times
+                    }
+                });
+            }
+
+            $('#gameOptions').modal('hide');
+        });
+
+        $('#cmdSubsMode').click(function(){
+            gameplay.subsMode = true;
+            $('.ps-chk').css('display', 'table-cell');
+            $('#panelTimer').css('display', 'none');
+            $('#panelSubs').css('display', '');
+
+            $('#gameOptions').modal('hide');
+        });
+
+        $('#cmdSubsCancel').click(function(){
+            gameplay.subsMode = false;
+            $('.ps-chk').css('display', 'none');
+            $('#panelTimer').css('display', '');
+            $('#panelSubs').css('display', 'none');
+        });
+
+        $('#cmdSubsDone').click(function(){
+            $('#formPlayers').submit();
+        });
+
+        $('#btn-subs').click(function(){
+            $('#po-panel-actions').hide('fast');
+            $('#po-panel-subs').show('fast');
+        });
+
+        $('#btn-subs-cancel').click(function(){
+            $('#po-panel-actions').show('fast');
+            $('#po-panel-subs').hide('fast');
+        });
+
+
+        var reflectPlayerStatNode = function(pid, code, points){
+            var psnode = $('tr#ps' + pid + ' td.ps-' + code);
+            psnode.text(points);
+        }
+
+        var reflectPlayersStat = function(tid, pstats){
+            if(pstats.length > 0){
+                var recentpid, mLastUpdate = new Date(2000,0,1,0,0,0);
+                for(var y=0; y<pstats.length; y++){
+                    var ps = pstats[y];
+                    var pid = ps.PlayerId;
+
+                    reflectPlayerStatNode(pid, 'PTS', (ps.FGM - ps.FGM3) * 2 + ps.FGM3 * 3 + ps.FTM);
+                    reflectPlayerStatNode(pid, 'RB', ps.REBOFF + ps.REBDEF);
+                    reflectPlayerStatNode(pid, 'AST', ps.ASSIST);
+                    reflectPlayerStatNode(pid, 'STL', ps.STEAL);
+                    reflectPlayerStatNode(pid, 'BLK', ps.BLOCK);
+                    reflectPlayerStatNode(pid, 'TO', ps.TURNOVER);
+                    reflectPlayerStatNode(pid, 'PF', ps.FOULPER);
+                    reflectPlayerStatNode(pid, 'TF', ps.FOULTECH);
+
+                    var lastUpdate = new Date(ps.LastUpdate);
+                    if(mLastUpdate < lastUpdate){
+                        mLastUpdate = lastUpdate;
+                        recentpid = pid;
+                    }
+                }
+
+                // highlight row
+                var tsnode = $('tr#ps' + recentpid);
+                if(!tsnode.hasClass('recent-action')){
+                    $('tbody.tps-' + tid + ' tr.recent-action').removeClass('recent-action');
+                    tsnode.addClass('recent-action');
+                }
+            }
+        }
+
+
+        var reflectTeamScore = function(team, tid){
+            // update quarter score
+            var total = 0;
+            for(var y=1; y<=4; y++){
+                var tsnodeq = $('tr#score' + tid + ' .score-q' + y);
+                var points = team.ts['Q' + y];
+                total += points;
+                tsnodeq.text(points > 0 ? points : "");
+            }
+
+            // update total
+            var tsnodet = $('tr#score' + tid + ' td.score-total span');
+            tsnodet.text(total);
+
+            // highlight row
+            $('.ts-row').removeClass('recent-action');
+            $('tr#score' + tid).addClass('recent-action');
+        }
+
+        var updateTeamScore = function(tid, score){
+            var team = gameplay['team' + tid];
+            var currQ = gameplay.game.CurrentQuarter > 4 ? 4 : gameplay.game.CurrentQuarter;
+            team.ts['Q' + currQ] = team.ts['Q' + currQ] + score;
+
+            reflectTeamScore(team, tid);
+        }
+
+        var updatePlayerStat = function(args){
+            var pstats = gameplay['team' + args.teamId].ps;
+            var ps;
+            for(var i=0;i<pstats.length; i++){
+                if(pstats[i].PlayerId == args.playerId){
+                    ps = pstats[i];
+                    break;
+                }
+            }
+
+            switch (gameplay.actionTypes[args.action].code)
+            {
+                //case 'FTm':
+                //case 'FGm':
+                //case 'FG3m':
+                case 'FT':
+                    ps.FTM += 1;
+                    updateTeamScore(args.teamId, 1);
+                    break;
+                case 'FG':
+                    ps.FGM += 1;
+                    updateTeamScore(args.teamId, 2);
+                    break;
+                case 'FG3':
+                    ps.FGM += 1;
+                    ps.FGM3 += 1;
+                    updateTeamScore(args.teamId, 3);
+                    break;
+                case 'AST':
+                    ps.ASSIST += 1;
+                    break;
+                case 'STL':
+                    ps.STEAL += 1;
+                    break;
+                case 'BLK':
+                    ps.BLOCK += 1;
+                    break;
+                case 'RBO':
+                    ps.REBOFF += 1;
+                    break;
+                case 'RBD':
+                    ps.REBDEF += 1;
+                    break;
+                case 'TO':
+                    ps.TURNOVER += 1;
+                    break;
+                case 'PF':
+                    ps.FOULPER +=1;
+                    break;
+                case 'TF':
+                    ps.FOULTECH +=1;
+                    break;
+            }
+
+            reflectPlayersStat(args.teamId, [ps]);
+        }
+
+        $('.po-action').click(function(){
+            var actionCode = $(this).data('po-action');
+            var arg = $(this).data('po-action-arg');
+            var dataArgsJson = {
+                gameId : gameplay.game.Id,
+                teamId : gameplay.cteamId,
+                playerId : gameplay.cplayerId,
+                action : actionCode,
+                arg : arg,
+                recPlayerId : -1
+            }
+
+            updatePlayerStat(dataArgsJson);
+            var dataArgs = JSON.stringify(dataArgsJson);
+
+            $.ajax({
+                type: "POST", url: "/GameplaySync.asmx/SendAction",
+                data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                success: function (data) {
+                    // Do nothing
+                    //pageRefresh();
+                },
+                error: function (request, status, error) {
+                    showAlert("[SendAction] An error has occurred, args: " + dataArgs, "Error");
+                    // Must retry up to 3 times
+                }
+            });
+
+            $('#playerOptions').modal('hide')
+        });
+
+        (function(){
+            var dataArgs = JSON.stringify({
+                gameId : gameplay.game.Id,
+                "lastUpdate" : gameplay.lastUpdate.toUTCString(),
+                firstSync : true
+            });
+
+            $.ajax({
+                type: "POST", url: "/GameplaySync.asmx/GetDelta2",
+                data: dataArgs, contentType: "application/json; charset=utf-8", dataType: "json",
+                success: function (data) {
+                    if(data.d){
+                        var d = JSON.parse(data.d);
+                        if(d.return == 2){
+                            pageRefresh();
+                        } else {
+                            // init game json
+                            //console.log(d);
+
+                            gameplay['team' + gameplay.ts[0]] = d['team' + gameplay.ts[0]];
+                            gameplay['team' + gameplay.ts[1]] = d['team' + gameplay.ts[1]];
+                            gameplay.game = d.game;
+                        }
+                    }
+
+                    if(gameplay.autoRefresh){
+                        setTimeout(checkLastActivity, 750);
+                    }
+                },
+                error: function (request, status, error) {
+                    showAlert("[firstSync:GetDelta2] An error has occurred, args: " + dataArgs, "Error");
+                }
+            });
+
+            // Draggable
+            /*
+            $(".in-floor tbody, .in-bench tbody").sortable();
+            $(".in-floor .player-handle strong, .in-bench .player-handle strong")
+                .draggable({ revert: "invalid" })
+                .droppable({
+                activeClass: "ui-state-default",
+                hoverClass: "ui-state-hover",
+                drop: function( event, ui ) {
+                    $( this )
+                      .addClass( "ui-state-highlight" )
+                      .find( "p" )
+                        .html( "Dropped!" );
+                }
+            });*/
+        }()); // firstSync, checkLastActivity();
+
+        $(document).bind('keydown', function (event) {
+            if (event.altKey) {
+                if(keypressed == "")
+                {
+                    $('#playerOptions :button').tooltip({placement: 'right'})
+                      .tooltip('show');
+                    keypressed = "alt";
+                }
+            }
+        });
+
+        $(document).bind('keyup', function(event) {
+            if( event.keyCode == 18 ) {
+                keypressed = "";
+                $('#playerOptions :button').tooltip("hide");
+            }
+        });
+    });
+    var keypressed = "";
+
+</script>

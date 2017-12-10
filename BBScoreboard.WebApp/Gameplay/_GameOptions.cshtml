@@ -1,0 +1,131 @@
+﻿@using BBScoreboard
+@{
+    UCGame game = Page.Game;
+    UserProfile user = Page.User;
+    GameplayModel gameplay = Page.GamePlay;
+}
+
+<form method="post" id="formGameOptions">
+    <input type="hidden" name="cmd" id="cmd" value="UpdateGame" />
+    <div id="gameOptions" class="modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h3 id="gmTitle" class="modal-title">Game Options</h3>
+                </div>
+                <div class="modal-body">
+                    @if (!game.IsEnded) {
+                    <div>
+                        <h4>Quarter @Html.Raw(AppHelper.EnableTimer ? "&amp; Time Clock" : "")</h4>
+                        <div class="pull-left">
+                            <select name="quarter" id="quarter" style="width: auto" class="form-control">
+                                <optgroup label="Quarters">
+                                    @for (int i = 1; i <= 4; i++)
+                                    {
+                                        <option value="@i" @(game.CurrentQuarter == i ? "selected=selected" : "")>Q@(i)</option>
+                                    }
+                                </optgroup>
+                                <optgroup label="Overtime">
+                                    @for (int i = 1; i <= 5; i++)
+                                    {
+                                        <option value="@(i + 4)" @(game.CurrentQuarter == (i + 4) ? "selected=selected" : "")>OT@(i)</option>
+                                    }
+                                </optgroup>
+                            </select>
+                        </div>
+                        @if (AppHelper.EnableTimer)
+                        {
+                            <div class="pull-left">
+                                &nbsp;&nbsp;<select id="mm" name="mm" style="width: auto; display: inline" class="form-control"></select>:<select id="ss" name="ss" style="width: auto; display: inline" class="form-control"></select>:<select id="ms" name="ms" style="width: auto; display: inline" class="form-control"></select>&nbsp;&nbsp;<label for="goUpdateTime" style="display: inline"><input id="goUpdateTime" type="checkbox" name="go-time-update" style="margin: auto" value="1" />&nbsp;Update Time</label>
+                            </div>
+                        }
+                    </div>
+                    <div style="clear: both">
+                        <br />
+                        <table class="table score table-condensed" style="margin-bottom: 0">
+                            <thead>
+                                <tr class="no-border-top">
+                                    <td class="main team" style="text-align: left">
+                                        <h4>Team Scores</h4>
+                                    </td>
+                                    <td class="normal">
+                                        Q1
+                                    </td>
+                                    <td class="normal">
+                                        Q2
+                                    </td>
+                                    <td class="normal">
+                                        Q3
+                                    </td>
+                                    <td class="normal">
+                                        Q4
+                                    </td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < 2; i++)
+                                {
+                                    var teamModel = gameplay.TeamModels[i];
+                                    var tstat = teamModel.Stat;
+                                    var team = teamModel.Team;
+                                    <tr @(i == 0 ? "class=no-border-top" : "")>
+                                        <td class="main team">
+                                            <div style="width: 20px; height: 20px; background-color: @team.TeamColor; float: left">&nbsp;</div>
+                                            &nbsp;@team.Name
+                                        </td>
+                                        <td class="normal">
+                                            <select id="@(string.Format("t{0}_q1", i))" name="@(string.Format("t{0}_q1", i))" style="width: auto" class="form-control"></select>
+                                        </td>
+                                        <td class="normal">
+                                            <select id="@(string.Format("t{0}_q2", i))" name="@(string.Format("t{0}_q2", i))" style="width: auto" class="form-control"></select>
+                                        </td>
+                                        <td class="normal">
+                                            <select id="@(string.Format("t{0}_q3", i))" name="@(string.Format("t{0}_q3", i))" style="width: auto" class="form-control"></select>
+                                        </td>
+                                        <td>
+                                            <select id="@(string.Format("t{0}_q4", i))" name="@(string.Format("t{0}_q4", i))" style="width: auto" class="form-control"></select>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        <label for="goUpdateScore" class="pull-right" style="display: inline">
+                            <input id="goUpdateScore" type="checkbox" name="go-update-score" style="margin: auto" value="1" />&nbsp;Update Scores
+                        </label>
+                    </div>
+                    }
+                    <div style="clear: both">
+                        @if (!game.IsEnded) {
+                        <h4>More Options</h4>
+                        }
+                        <div>
+                            <label for="goShowAllActions" style="font-weight: normal"><input id="goShowAllActions" type="checkbox" name="go-show-all-actions" style="margin: auto" value="1" />&nbsp;Show all PLAY BY PLAY (vs. current quarter only)</label>
+                            <label for="goShowOverallStats" style="font-weight: normal"><input id="goShowOverallStats" type="checkbox" name="go-show-overall-stats" style="margin: auto" value="1" />&nbsp;Show overall stats (vs. current quarter only)</label>
+                            @*<label for="goLock" style="font-weight: normal; display: block"><input id="goLock" type="checkbox" name="go-lock" style="margin: auto" value="1" />&nbsp;Lock changes</label>*@
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    @if (user.Access == (int)AccessType.Admin) {
+                    <button type="submit" name="cmd" class="btn btn-danger pull-left" value="Reset"
+                            onclick="return confirm('This will clear all scores and game progress. Continue?');">
+                        <i class="glyphicon glyphicon-refresh icon-white"></i>&nbsp;Reset
+                    </button>
+                    <button id="lockGame" type="submit" name="cmd" class="btn btn-warning pull-left" value="Lock">
+                        <i class="glyphicon glyphicon-refresh icon-white"></i>&nbsp;<span></span>
+                    </button>
+                    }
+                    @if (!game.IsEnded) {
+                    <button type="button" id="cmdSubsMode" class="pull-left btn btn-info" title="Switch to Substitute Mode">Substitute...</button>
+                    }
+                    &nbsp;
+                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                    @if (!game.IsEnded) {
+                    <button class="btn btn-primary" type="button" id="cmdGameUpdate" name="cmd" value="UpdateGame">Save changes</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,474 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="Models.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="AppConfig">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Key" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="Value" Type="nvarchar" MaxLength="500" Nullable="false" />
+        </EntityType>
+        <EntityType Name="BasketballPosition">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="ShortName" Type="nvarchar" MaxLength="50" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCGame">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="GameNumber" Type="int" Nullable="false" />
+          <Property Name="Team1" Type="int" Nullable="false" />
+          <Property Name="Team2" Type="int" Nullable="false" />
+          <Property Name="GameDate" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="CurrentQuarter" Type="int" Nullable="false" />
+          <Property Name="SeasonId" Type="int" Nullable="false" />
+          <Property Name="Venue" Type="nvarchar" MaxLength="2000" Nullable="false" />
+          <Property Name="IsStarted" Type="bit" Nullable="false" />
+          <Property Name="TimeLastModified" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="IsTimeOn" Type="bit" Nullable="false" />
+          <Property Name="TimeLeft" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="LastActivityDate" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="LastUpdate" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="LastUpdateForRefresh" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="IsEnded" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCGameplayAction">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="GameId" Type="int" Nullable="false" />
+          <Property Name="Quarter" Type="int" Nullable="false" />
+          <Property Name="TeamId" Type="int" Nullable="false" />
+          <Property Name="PlayerId" Type="int" Nullable="false" />
+          <Property Name="ActionCode" Type="int" Nullable="false" />
+          <Property Name="Arg" Type="int" Nullable="false" />
+          <Property Name="RecPlayerId" Type="int" Nullable="false" />
+          <Property Name="ActionDate" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="GameTime" Type="datetime2" Precision="7" Nullable="false" />
+          <Property Name="TeamScore1" Type="int" Nullable="false" />
+          <Property Name="TeamScore2" Type="int" Nullable="false" />
+          <Property Name="Status" Type="int" Nullable="false" />
+          <Property Name="LastUpdate" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCGamePlayerStat">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="PlayerId" Type="int" Nullable="false" />
+          <Property Name="FGA" Type="int" Nullable="false" />
+          <Property Name="FGM" Type="int" Nullable="false" />
+          <Property Name="GameId" Type="int" Nullable="false" />
+          <Property Name="Quarter" Type="int" Nullable="false" />
+          <Property Name="FGA3" Type="int" Nullable="false" />
+          <Property Name="FGM3" Type="int" Nullable="false" />
+          <Property Name="FTA" Type="int" Nullable="false" />
+          <Property Name="FTM" Type="int" Nullable="false" />
+          <Property Name="REBOFF" Type="int" Nullable="false" />
+          <Property Name="REBDEF" Type="int" Nullable="false" />
+          <Property Name="ASSIST" Type="int" Nullable="false" />
+          <Property Name="STEAL" Type="int" Nullable="false" />
+          <Property Name="BLOCK" Type="int" Nullable="false" />
+          <Property Name="TURNOVER" Type="int" Nullable="false" />
+          <Property Name="FOULPER" Type="int" Nullable="false" />
+          <Property Name="FOULTECH" Type="int" Nullable="false" />
+          <Property Name="InFloor" Type="bit" Nullable="false" />
+          <Property Name="TeamId" Type="int" Nullable="false" />
+          <Property Name="LastUpdate" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCGameTeamStat">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="TeamId" Type="int" Nullable="false" />
+          <Property Name="GameId" Type="int" Nullable="false" />
+          <Property Name="Q1" Type="int" Nullable="false" />
+          <Property Name="Q2" Type="int" Nullable="false" />
+          <Property Name="Q3" Type="int" Nullable="false" />
+          <Property Name="Q4" Type="int" Nullable="false" />
+          <Property Name="LastUpdate" Type="datetime2" Precision="7" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCPlayer">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="FirstName" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="LastName" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="PlayerNumber" Type="int" Nullable="false" />
+          <Property Name="PositionId" Type="int" Nullable="false" />
+          <Property Name="TeamId" Type="int" Nullable="false" />
+          <Property Name="Active" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCSeason">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="2000" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCTeam">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="2000" Nullable="false" />
+          <Property Name="TeamColor" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Active" Type="bit" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UserProfile">
+          <Key>
+            <PropertyRef Name="UserId" />
+          </Key>
+          <Property Name="UserId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="Email" Type="nvarchar" MaxLength="56" Nullable="false" />
+          <Property Name="Access" Type="int" Nullable="false" />
+          <Property Name="FirstName" Type="nvarchar" MaxLength="500" Nullable="false" />
+          <Property Name="LastName" Type="nvarchar" MaxLength="500" Nullable="false" />
+        </EntityType>
+        <EntityContainer Name="ModelsStoreContainer">
+          <EntitySet Name="AppConfig" EntityType="Self.AppConfig" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="BasketballPosition" EntityType="Self.BasketballPosition" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCGame" EntityType="Self.UCGame" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCGameplayAction" EntityType="Self.UCGameplayAction" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCGamePlayerStat" EntityType="Self.UCGamePlayerStat" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCGameTeamStat" EntityType="Self.UCGameTeamStat" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCPlayer" EntityType="Self.UCPlayer" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCSeason" EntityType="Self.UCSeason" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UCTeam" EntityType="Self.UCTeam" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UserProfile" EntityType="Self.UserProfile" Schema="dbo" store:Type="Tables" />
+        </EntityContainer>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="Models" Alias="Self" p1:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:p1="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="BBScoreboardEntities" p1:LazyLoadingEnabled="true">
+          <EntitySet Name="BasketballPositions" EntityType="Models.BasketballPosition" />
+          <EntitySet Name="UCGamePlayerStats" EntityType="Models.UCGamePlayerStat" />
+          <EntitySet Name="UCSeasons" EntityType="Models.UCSeason" />
+          <EntitySet Name="UCGameTeamStats" EntityType="Models.UCGameTeamStat" />
+          <EntitySet Name="UCGameplayActions" EntityType="Models.UCGameplayAction" />
+          <EntitySet Name="UserProfiles" EntityType="Models.UserProfile" />
+          <EntitySet Name="UCPlayers" EntityType="Models.UCPlayer" />
+          <EntitySet Name="UCTeams" EntityType="Models.UCTeam" />
+          <EntitySet Name="UCGames" EntityType="Models.UCGame" />
+          <EntitySet Name="AppConfigs" EntityType="Models.AppConfig" />
+        </EntityContainer>
+        <EntityType Name="BasketballPosition">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="500" Unicode="true" FixedLength="false" />
+          <Property Type="String" Name="ShortName" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="UCGamePlayerStat">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
+          <Property Name="PlayerId" Type="Int32" Nullable="false" />
+          <Property Name="FGA" Type="Int32" Nullable="false" />
+          <Property Name="FGM" Type="Int32" Nullable="false" />
+          <Property Name="GameId" Type="Int32" Nullable="false" />
+          <Property Name="FGA3" Type="Int32" Nullable="false" />
+          <Property Name="FGM3" Type="Int32" Nullable="false" />
+          <Property Name="FTA" Type="Int32" Nullable="false" />
+          <Property Name="FTM" Type="Int32" Nullable="false" />
+          <Property Name="REBOFF" Type="Int32" Nullable="false" />
+          <Property Name="REBDEF" Type="Int32" Nullable="false" />
+          <Property Name="ASSIST" Type="Int32" Nullable="false" />
+          <Property Name="STEAL" Type="Int32" Nullable="false" />
+          <Property Name="BLOCK" Type="Int32" Nullable="false" />
+          <Property Name="TURNOVER" Type="Int32" Nullable="false" />
+          <Property Name="FOULPER" Type="Int32" Nullable="false" />
+          <Property Name="FOULTECH" Type="Int32" Nullable="false" />
+          <Property Type="Boolean" Name="InFloor" Nullable="false" />
+          <Property Type="Int32" Name="TeamId" Nullable="false" />
+          <Property Type="DateTime" Name="LastUpdate" Nullable="false" Precision="7" />
+          <Property Type="Int32" Name="Quarter" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCSeason">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="2000" Unicode="true" FixedLength="false" />
+        </EntityType>
+        <EntityType Name="UCGameTeamStat">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Type="Int32" Name="Id" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Type="Int32" Name="TeamId" Nullable="false" />
+          <Property Type="Int32" Name="GameId" Nullable="false" />
+          <Property Type="Int32" Name="Q1" Nullable="false" />
+          <Property Type="Int32" Name="Q2" Nullable="false" />
+          <Property Type="Int32" Name="Q3" Nullable="false" />
+          <Property Type="Int32" Name="Q4" Nullable="false" />
+          <Property Type="DateTime" Name="LastUpdate" Nullable="false" Precision="7" />
+        </EntityType>
+        <EntityType Name="UCGameplayAction">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Type="Int32" Name="Id" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Type="Int32" Name="GameId" Nullable="false" />
+          <Property Type="Int32" Name="Quarter" Nullable="false" />
+          <Property Type="Int32" Name="TeamId" Nullable="false" />
+          <Property Type="Int32" Name="PlayerId" Nullable="false" />
+          <Property Type="Int32" Name="ActionCode" Nullable="false" />
+          <Property Type="Int32" Name="Arg" Nullable="false" />
+          <Property Type="Int32" Name="RecPlayerId" Nullable="false" />
+          <Property Type="DateTime" Name="ActionDate" Nullable="false" Precision="7" />
+          <Property Type="DateTime" Name="GameTime" Nullable="false" Precision="7" />
+          <Property Type="Int32" Name="TeamScore1" Nullable="false" />
+          <Property Type="Int32" Name="TeamScore2" Nullable="false" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+          <Property Type="DateTime" Name="LastUpdate" Nullable="false" Precision="7" />
+        </EntityType>
+        <EntityType Name="UserProfile">
+          <Key>
+            <PropertyRef Name="UserId" />
+          </Key>
+          <Property Type="Int32" Name="UserId" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Type="String" Name="Email" Nullable="false" MaxLength="56" FixedLength="false" Unicode="true" />
+          <Property Type="Int32" Name="Access" Nullable="false" />
+          <Property Type="String" Name="FirstName" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Type="String" Name="LastName" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+        </EntityType>
+        <EntityType Name="UCPlayer">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="FirstName" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="LastName" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="PlayerNumber" Type="Int32" Nullable="false" />
+          <Property Name="PositionId" Type="Int32" Nullable="false" />
+          <Property Name="TeamId" Type="Int32" Nullable="false" />
+          <Property Name="Active" Type="Boolean" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCTeam">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="String" Nullable="false" MaxLength="2000" FixedLength="false" Unicode="true" />
+          <Property Name="TeamColor" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Active" Type="Boolean" Nullable="false" />
+        </EntityType>
+        <EntityType Name="UCGame">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="GameNumber" Type="Int32" Nullable="false" />
+          <Property Name="Team1" Type="Int32" Nullable="false" />
+          <Property Name="Team2" Type="Int32" Nullable="false" />
+          <Property Name="GameDate" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="CurrentQuarter" Type="Int32" Nullable="false" />
+          <Property Name="SeasonId" Type="Int32" Nullable="false" />
+          <Property Name="Venue" Type="String" Nullable="false" MaxLength="2000" FixedLength="false" Unicode="true" />
+          <Property Name="IsStarted" Type="Boolean" Nullable="false" />
+          <Property Name="TimeLastModified" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="IsTimeOn" Type="Boolean" Nullable="false" />
+          <Property Name="TimeLeft" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LastActivityDate" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LastUpdate" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="LastUpdateForRefresh" Type="DateTime" Nullable="false" Precision="7" />
+          <Property Name="IsEnded" Type="Boolean" Nullable="false" />
+        </EntityType>
+        <EntityType Name="AppConfig">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" />
+          <Property Name="Key" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="Value" Type="String" Nullable="false" MaxLength="500" FixedLength="false" Unicode="true" />
+        </EntityType>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="ModelsStoreContainer" CdmEntityContainer="BBScoreboardEntities">
+          <EntitySetMapping Name="BasketballPositions">
+            <EntityTypeMapping TypeName="Models.BasketballPosition">
+              <MappingFragment StoreEntitySet="BasketballPosition">
+                <ScalarProperty Name="ShortName" ColumnName="ShortName" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCGamePlayerStats">
+            <EntityTypeMapping TypeName="Models.UCGamePlayerStat">
+              <MappingFragment StoreEntitySet="UCGamePlayerStat">
+                <ScalarProperty Name="Quarter" ColumnName="Quarter" />
+                <ScalarProperty Name="LastUpdate" ColumnName="LastUpdate" />
+                <ScalarProperty Name="TeamId" ColumnName="TeamId" />
+                <ScalarProperty Name="InFloor" ColumnName="InFloor" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="PlayerId" ColumnName="PlayerId" />
+                <ScalarProperty Name="FGA" ColumnName="FGA" />
+                <ScalarProperty Name="FGM" ColumnName="FGM" />
+                <ScalarProperty Name="GameId" ColumnName="GameId" />
+                <ScalarProperty Name="FGA3" ColumnName="FGA3" />
+                <ScalarProperty Name="FGM3" ColumnName="FGM3" />
+                <ScalarProperty Name="FTA" ColumnName="FTA" />
+                <ScalarProperty Name="FTM" ColumnName="FTM" />
+                <ScalarProperty Name="REBOFF" ColumnName="REBOFF" />
+                <ScalarProperty Name="REBDEF" ColumnName="REBDEF" />
+                <ScalarProperty Name="ASSIST" ColumnName="ASSIST" />
+                <ScalarProperty Name="STEAL" ColumnName="STEAL" />
+                <ScalarProperty Name="BLOCK" ColumnName="BLOCK" />
+                <ScalarProperty Name="TURNOVER" ColumnName="TURNOVER" />
+                <ScalarProperty Name="FOULPER" ColumnName="FOULPER" />
+                <ScalarProperty Name="FOULTECH" ColumnName="FOULTECH" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCSeasons">
+            <EntityTypeMapping TypeName="Models.UCSeason">
+              <MappingFragment StoreEntitySet="UCSeason">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCGameTeamStats">
+            <EntityTypeMapping TypeName="Models.UCGameTeamStat">
+              <MappingFragment StoreEntitySet="UCGameTeamStat">
+                <ScalarProperty Name="LastUpdate" ColumnName="LastUpdate" />
+                <ScalarProperty Name="Q4" ColumnName="Q4" />
+                <ScalarProperty Name="Q3" ColumnName="Q3" />
+                <ScalarProperty Name="Q2" ColumnName="Q2" />
+                <ScalarProperty Name="Q1" ColumnName="Q1" />
+                <ScalarProperty Name="GameId" ColumnName="GameId" />
+                <ScalarProperty Name="TeamId" ColumnName="TeamId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCGameplayActions">
+            <EntityTypeMapping TypeName="Models.UCGameplayAction">
+              <MappingFragment StoreEntitySet="UCGameplayAction">
+                <ScalarProperty Name="LastUpdate" ColumnName="LastUpdate" />
+                <ScalarProperty Name="Status" ColumnName="Status" />
+                <ScalarProperty Name="TeamScore2" ColumnName="TeamScore2" />
+                <ScalarProperty Name="TeamScore1" ColumnName="TeamScore1" />
+                <ScalarProperty Name="GameTime" ColumnName="GameTime" />
+                <ScalarProperty Name="ActionDate" ColumnName="ActionDate" />
+                <ScalarProperty Name="RecPlayerId" ColumnName="RecPlayerId" />
+                <ScalarProperty Name="Arg" ColumnName="Arg" />
+                <ScalarProperty Name="ActionCode" ColumnName="ActionCode" />
+                <ScalarProperty Name="PlayerId" ColumnName="PlayerId" />
+                <ScalarProperty Name="TeamId" ColumnName="TeamId" />
+                <ScalarProperty Name="Quarter" ColumnName="Quarter" />
+                <ScalarProperty Name="GameId" ColumnName="GameId" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UserProfiles">
+            <EntityTypeMapping TypeName="Models.UserProfile">
+              <MappingFragment StoreEntitySet="UserProfile">
+                <ScalarProperty Name="LastName" ColumnName="LastName" />
+                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
+                <ScalarProperty Name="Access" ColumnName="Access" />
+                <ScalarProperty Name="Email" ColumnName="Email" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCPlayers">
+            <EntityTypeMapping TypeName="Models.UCPlayer">
+              <MappingFragment StoreEntitySet="UCPlayer">
+                <ScalarProperty Name="Active" ColumnName="Active" />
+                <ScalarProperty Name="TeamId" ColumnName="TeamId" />
+                <ScalarProperty Name="PositionId" ColumnName="PositionId" />
+                <ScalarProperty Name="PlayerNumber" ColumnName="PlayerNumber" />
+                <ScalarProperty Name="LastName" ColumnName="LastName" />
+                <ScalarProperty Name="FirstName" ColumnName="FirstName" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCTeams">
+            <EntityTypeMapping TypeName="Models.UCTeam">
+              <MappingFragment StoreEntitySet="UCTeam">
+                <ScalarProperty Name="Active" ColumnName="Active" />
+                <ScalarProperty Name="TeamColor" ColumnName="TeamColor" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UCGames">
+            <EntityTypeMapping TypeName="Models.UCGame">
+              <MappingFragment StoreEntitySet="UCGame">
+                <ScalarProperty Name="IsEnded" ColumnName="IsEnded" />
+                <ScalarProperty Name="LastUpdateForRefresh" ColumnName="LastUpdateForRefresh" />
+                <ScalarProperty Name="LastUpdate" ColumnName="LastUpdate" />
+                <ScalarProperty Name="LastActivityDate" ColumnName="LastActivityDate" />
+                <ScalarProperty Name="TimeLeft" ColumnName="TimeLeft" />
+                <ScalarProperty Name="IsTimeOn" ColumnName="IsTimeOn" />
+                <ScalarProperty Name="TimeLastModified" ColumnName="TimeLastModified" />
+                <ScalarProperty Name="IsStarted" ColumnName="IsStarted" />
+                <ScalarProperty Name="Venue" ColumnName="Venue" />
+                <ScalarProperty Name="SeasonId" ColumnName="SeasonId" />
+                <ScalarProperty Name="CurrentQuarter" ColumnName="CurrentQuarter" />
+                <ScalarProperty Name="GameDate" ColumnName="GameDate" />
+                <ScalarProperty Name="Team2" ColumnName="Team2" />
+                <ScalarProperty Name="Team1" ColumnName="Team1" />
+                <ScalarProperty Name="GameNumber" ColumnName="GameNumber" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="AppConfigs">
+            <EntityTypeMapping TypeName="Models.AppConfig">
+              <MappingFragment StoreEntitySet="AppConfig">
+                <ScalarProperty Name="Value" ColumnName="Value" />
+                <ScalarProperty Name="Key" ColumnName="Key" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="True" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="True" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+        <DesignerProperty Name="UseLegacyProvider" Value="False" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

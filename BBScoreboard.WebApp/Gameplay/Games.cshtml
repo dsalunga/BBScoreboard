@@ -1,0 +1,66 @@
+﻿@using BBScoreboard
+@{
+    Page.Title = "Games";
+    Layout = "~/_SiteLayout.cshtml";
+    PageData["SubTitle"] = "Gameplay";
+
+    if (!AppHelper.CheckLogin(this, true))
+    {
+        return;
+    }
+
+    var seasonId = DataHelper.GetId(Request, "Season");
+    var view = DataHelper.Get(Request, "View");
+
+    var db = new BBScoreboardEntities();
+    var items = seasonId > 0 ? db.UCGames.Where(i => i.SeasonId == seasonId) : db.UCGames;
+    var teams = db.UCTeams;
+    var user = AppHelper.GetCurrentUser();
+}
+
+@section head{
+    <style type="text/css">
+        .edit, .delete {
+            display: none;
+        }
+
+        th.chk {
+            width: 15px;
+        }
+    </style>
+}
+
+<form method="post">
+    @if (items.Count() > 0)
+    {
+        <table class="table table-responsive table-striped">
+            <thead>
+                <tr>
+                    <th>Number</th>
+                    <th>Date</th>
+                    <th>Venue</th>
+                    <th>Team vs Team</th>
+                    @*<th>Quarter</th>*@
+                    <th style="text-align: center">Started</th>
+                    <th>Id</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    //if (item.IsStarted || user.Access != (int)AccessType.ReadOnly) {
+                    <tr>
+                        <td><span class="glyphicon glyphicon-expand"></span>&nbsp;<a href="~/Gameplay/@view?Game=@item.Id"><strong>Game @item.GameNumber</strong></a></td>
+                        <td>@item.GameDate</td>
+                        <td>@item.Venue</td>
+                        <td>@GameHelper.GetTeamName(teams, item.Team1, item.Team2)</td>
+                        @*<td>@item.CurrentQuarter</td>*@
+                        <td style="text-align: center"><i class="glyphicon glyphicon-@(item.IsStarted ? "ok" : "remove")"></i></td>
+                        <td>@item.Id</td>
+                    </tr>
+                    //}
+                }
+            </tbody>
+        </table>
+    }
+</form>

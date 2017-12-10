@@ -1,0 +1,9 @@
+*.suo
+*.user
+.vs
+obj
+
+/BBScoreboard/bin
+/BBScoreboard.Database/bin
+/BBScoreboard.Database/BBScoreboard.Database.dbmdl
+/IISExpress/Logs

@@ -1,0 +1,113 @@
+﻿@using BBScoreboard
+@{
+    Page.Title = "Login";
+    Layout = "_SiteLayout.cshtml";
+
+
+    var action = Request["Action"];
+    if (!string.IsNullOrEmpty(action) && action.Equals("Logoff", StringComparison.InvariantCultureIgnoreCase))
+    {
+        var returnUrl = Request.QueryString["ReturnUrl"];
+        if (returnUrl.IsEmpty())
+        {
+            // Some external login providers always require a return URL value
+            returnUrl = "~/Login"; //Href("~/");
+        }
+
+        // Log out of the current user context
+        AppHelper.LogOff();
+
+        // Redirect back to the return URL or homepage
+        Response.Redirect(returnUrl, false);
+        return;
+    }
+
+    var userId = WebSecurity.CurrentUserId;
+    if(userId > 0) {
+        Response.Redirect("~/");
+        return;
+    }
+
+    // Setup validation
+    Validation.RequireField("email", "You must specify an email address.");
+    Validation.RequireField("password", "You must specify a password.");
+    Validation.Add("password",
+        Validator.StringLength(
+            maxLength: Int32.MaxValue,
+            minLength: 6,
+            errorMessage: "Password must be at least 6 characters"));
+
+    if (IsPost && Validation.IsValid() && ModelState.IsValid)
+    {
+        AntiForgery.Validate();
+        var cmd = Request["cmd"];
+        if (!string.IsNullOrEmpty(cmd) && cmd.Equals("Login"))
+        {
+            var email = Request["email"];
+            var password = Request["password"];
+
+            //if (!string.IsNullOrEmpty(email) && !string.IsNullOrEmpty(password))
+            //{
+            //    AppHelper.Login(this, email, password, true);
+            //}
+            var rememberMe = false;
+            // rememberMe = Request.Form["rememberMe"].AsBool();
+
+            var returnUrl = Request.QueryString["ReturnUrl"];
+            if (returnUrl.IsEmpty())
+            {
+                // Some external login providers always require a return URL value
+                returnUrl = "~/"; //Href("~/");
+            }
+
+            if (WebSecurity.UserExists(email) && WebSecurity.GetPasswordFailuresSinceLastSuccess(email) > 4 && WebSecurity.GetLastPasswordFailureDate(email).AddSeconds(60) > DateTime.UtcNow)
+            {
+                Response.Redirect("~/Account/AccountLockedOut", false);
+                return;
+            }
+
+            // Attempt to log in using provided credentials
+            if (WebSecurity.Login(email, password, rememberMe))
+            {
+                Response.Redirect(returnUrl, false);
+                return;
+            }
+            else
+            {
+                ModelState.AddFormError("The user name or password provided is incorrect.");
+            }
+        }
+    }
+}
+
+@section head{
+
+}
+
+<form class="form-horizontal" method="post" role="form">
+    @AntiForgery.GetHtml()
+    @Html.ValidationSummary("Log in was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+    <div class="form-group">
+        <label for="inputEmail" class="col-sm-2 control-label">Email</label>
+        <div class="col-sm-3">
+            <input type="text" id="inputEmail" name="email" class="form-control" placeholder="Email" @Validation.For("email")>
+            @Html.ValidationMessage("email")
+        </div>
+    </div>
+    <div class="form-group">
+        <label for="inputPassword" class="col-sm-2 control-label">Password</label>
+        <div class="col-sm-3">
+            <input type="password" name="password" id="inputPassword" class="form-control" placeholder="Password" @Validation.For("password")>
+            @Html.ValidationMessage("password")
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-sm-3 col-sm-offset-2">
+            @*<label class="checkbox">
+                    <input type="checkbox">
+                    Remember me
+                </label>*@
+            <button type="submit" name="cmd" value="Login" class="btn btn-success">Sign in</button>
+        </div>
+    </div>
+</form>

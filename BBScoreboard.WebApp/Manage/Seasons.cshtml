@@ -1,0 +1,124 @@
+﻿@using BBScoreboard
+@{
+    Page.Title = "Game Seasons";
+    Layout = "~/_SiteLayout.cshtml";
+    PageData["SubTitle"] = "Manage";
+
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    var db = new BBScoreboardEntities();
+    var seasons = db.UCSeasons;
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (cmd.Equals("Delete"))
+        {
+            if (!string.IsNullOrEmpty(Request["id"]))
+            {
+                var ids = new List<int>(Array.ConvertAll(
+                    Request["id"].Split(','), new Converter<string, int>(int.Parse)));
+
+                var seasonsToRemove = db.UCSeasons.Where(s => ids.Contains(s.Id));
+                foreach (var season in seasonsToRemove)
+                {
+                    SeasonHelper.Delete(season.Id, db);
+                }
+                db.SaveChanges();
+            }
+        }
+    }
+}
+
+
+@section head{
+    <style type="text/css">
+        .edit, .delete {
+            display: none;
+        }
+
+        th.chk {
+            width: 15px;
+        }
+    </style>
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form method="post">
+            <a href="~/Manage/SeasonEntry" class="btn btn-default">New Season</a>
+            <a href="SeasonEntry" class="btn btn-warning edit">Edit</a>
+            <button type="submit" class="btn btn-danger delete" name="cmd" value="Delete" onclick="return confirm('Delete selected items?')">Delete</button>
+            @if (seasons.Count() > 0)
+            {
+                <table class="table table-responsive table-striped">
+                    <thead>
+                        <tr>
+                            <th class="chk">
+                                <input type="checkbox" name="chk-main" value="chk-main" class="chk-main" />
+                            </th>
+                            <th>Name</th>
+                            <th class="muted">Id</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in seasons)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="chk-item" name="id" value="@item.Id" />
+                                </td>
+                                <td><a href="~/Manage/SeasonEntry?Id=@item.Id">@item.Name</a></td>
+                                <td class="muted">@item.Id</td>
+                                <td><a href="~/Manage/Games?Season=@item.Id" class="btn btn-info btn-xs"><strong>Games</strong></a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </form>
+    </div>
+</div>
+
+@section footer {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var isBatchChange = false;
+
+            // Show/Hide Edit/Delete buttons
+            var showHideButtons = function () {
+                if (!isBatchChange) { // batch check/uncheck should not be running
+                    //var showEdit = false;
+                    var showDelete = false;
+                    var checkedItems = $('.chk-item:checked');
+                    var checkedCount = checkedItems.length;
+                    if (checkedCount == 1) {
+                        //showEdit = true;
+                        showDelete = true;
+                        //$('.edit').attr('href', 'SeasonEntry?id=' + checkedItems.val())
+                    }
+                    else if (checkedCount > 1) {
+                        //showEdit = false;
+                        showDelete = true;
+                    }
+
+                    //$('.edit').css('display', showEdit ? 'inline-block' : 'none');
+                    $('.delete').css('display', showDelete ? 'inline-block' : 'none');
+                }
+            }
+
+            // Check/Uncheck all
+            $('.chk-main').click(function () {
+                isBatchChange = true;
+                $('.chk-item').attr('checked', $(this).is(':checked'));
+                isBatchChange = false;
+                showHideButtons();
+            });
+
+            // Trigger for any checked/unchecked item
+            $('.chk-item').change(function () {
+                showHideButtons();
+            });
+        });
+    </script>
+}

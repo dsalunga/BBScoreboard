@@ -1,0 +1,135 @@
+﻿@using BBScoreboard
+@{
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+    
+    Page.Title = "Game Seasons Manager";
+    Layout = "~/_SiteLayout.cshtml";
+    PageData["SubTitle"] = "Manage";
+
+    var seasonId = DataHelper.GetId(Request, "Season");
+    var db = new BBScoreboardEntities();
+    var items = db.UCGames.Where(i => i.SeasonId == seasonId);
+    var teams = db.UCTeams;
+
+    if (IsPost)
+    {
+        var cmd = Request["cmd"];
+        if (cmd.Equals("Delete"))
+        {
+            if (!string.IsNullOrEmpty(Request["id"]))
+            {
+                var ids = new List<int>(Array.ConvertAll(
+                    Request["id"].Split(','), new Converter<string, int>(int.Parse)));
+
+                var gamesToRemove = db.UCGames.Where(s => ids.Contains(s.Id));
+                foreach (var game in gamesToRemove)
+                {
+                    GameHelper.Delete(game.Id, db);
+                }
+                db.SaveChanges();
+            }
+        }
+    }
+}
+
+@section head{
+    <style type="text/css">
+        .edit, .delete {
+            display: none;
+        }
+
+        th.chk {
+            width: 15px;
+        }
+    </style>
+}
+
+<form method="post">
+    <a href="~/Manage/GameEntry?Season=@seasonId" class="btn btn-default">New Game</a>
+    <button type="button" class="btn btn-warning edit" id="btn-edit" value="~/Manage/GameEntry?Season=@seasonId">Edit</button>
+    <button type="submit" class="btn btn-danger delete" name="cmd" value="Delete" onclick="return confirm('Delete selected items?')">Delete</button>
+    <a href="~/Manage/Seasons" class="btn btn-default pull-right">Back to Seasons</a>
+    @if (items.Count() > 0)
+{
+    <table class="table table-responsive table-striped">
+        <thead>
+            <tr>
+                <th class="chk">
+                    <input type="checkbox" name="chk-main" value="chk-main" class="chk-main" />
+                </th>
+                <th>Number</th>
+                <th>Date</th>
+                <th>Venue</th>
+                <th>Team vs Team</th>
+                @*<th>Quarter</th>*@
+                <th class="muted">Id</th>
+                @*<th></th>*@
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+                <tr>
+                    <td>
+                        <input type="checkbox" class="chk-item" name="id" value="@item.Id" />
+                    </td>
+                    <td><a href="~/Manage/GameEntry?Season=@seasonId&Game=@item.Id">Game @item.GameNumber</a></td>
+                    <td>@item.GameDate</td>
+                    <td>@item.Venue</td>
+                    <td>@GameHelper.GetTeamName(teams, item.Team1, item.Team2)</td>
+                    @*<td>@item.CurrentQuarter</td>*@
+                    <td class="muted">@item.Id</td>
+                    @*<td><a href="~/Manage/Games?Season=@item.Id">View Games</a></td>*@
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+</form>
+
+@section footer {
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var isBatchChange = false;
+
+            // Show/Hide Edit/Delete buttons
+            var showHideButtons = function () {
+                if (!isBatchChange) { // batch check/uncheck should not be running
+                    //var showEdit = false;
+                    var showDelete = false;
+                    var checkedItems = $('.chk-item:checked');
+                    var checkedCount = checkedItems.length;
+                    if (checkedCount == 1) {
+                        //showEdit = true;
+                        showDelete = true;
+                    }
+                    else if (checkedCount > 1) {
+                        //showEdit = false;
+                        showDelete = true;
+                    }
+
+                    //$('.edit').css('display', showEdit ? 'inline-block' : 'none');
+                    $('.delete').css('display', showDelete ? 'inline-block' : 'none');
+                }
+            }
+
+            // Check/Uncheck all
+            $('.chk-main').click(function () {
+                isBatchChange = true;
+                $('.chk-item').attr('checked', $(this).is(':checked'));
+                isBatchChange = false;
+                showHideButtons();
+            });
+
+            // Trigger for any checked/unchecked item
+            $('.chk-item').change(function () {
+                showHideButtons();
+            });
+
+            //$('#btn-edit').click(function () {
+            //    var checkedItem = $('.chk-item:checked');
+            //    location.href = $(this).val() + '&Game=' + checkedItem[0].value;
+            //});
+        });
+    </script>
+}

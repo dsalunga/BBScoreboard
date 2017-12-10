@@ -1,0 +1,84 @@
+﻿@using BBScoreboard
+@{
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    Page.Title = "Team Entry";
+    Layout = "~/_SiteLayout.cshtml";
+    PageData["SubTitle"] = "Manage";
+
+    Validation.RequireField("Name", "You must specify the Team Name.");
+
+    var db = new BBScoreboardEntities();
+    var query = new WebQuery(this);
+    var teamId = query.GetId("Team");
+    var item = teamId > 0 ? db.UCTeams.Find(teamId) : db.UCTeams.Create();
+
+    if (IsPost && Validation.IsValid() && ModelState.IsValid)
+    {
+        // Execute validators and also check if any ReCaptcha errors are present.
+        var name = Request["Name"];
+        var color = Request["Color"];
+
+        item.Name = name;
+        item.TeamColor = string.IsNullOrEmpty(color) ? "#ff0000" : color;
+        item.Active = DataHelper.GetBool(Request["Active"], false);
+
+        if (teamId == -1)
+        {
+            db.UCTeams.Add(item);
+        }
+        db.SaveChanges();
+
+        Response.Redirect("~/Manage/Teams");
+        return;
+    }
+}
+
+@section head{
+    <link rel="stylesheet" href="~/assets/farbtastic/farbtastic.css" type="text/css" />
+}
+
+<div class="row">
+    <div class="col-md-5">
+        <form class="form-horizontal" method="post" role="form">
+            @Html.ValidationSummary("Entry was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+
+            <div class="form-group">
+                <label class="control-label" for="Name">Team Name</label>
+                <div class="controls">
+                    <input type="text" name="Name" class="col-md-4 form-control" value="@item.Name" placeholder="Team Name" @Validation.For("Name")>
+                    @Html.ValidationMessage("Name")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="Color">Team Color</label>
+                <div class="controls">
+                    <input type="text" class="col-md-2 form-control" name="Color" id="txtColor" value="@item.TeamColor" placeholder="Format: #000000" @Validation.For("Color")>
+                    @Html.ValidationMessage("Color")
+                </div>
+            </div>
+            <div class="form-group">
+                <div id="picker"></div>
+                <br />
+                <div class="checkbox">
+                    <label><input name="Active" type="checkbox" value="1" checked="@item.Active" />Active</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="controls">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a href="~/Manage/Teams" class="btn btn-default">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section footer{
+    <script type="text/javascript" src="~/assets/farbtastic/farbtastic.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#picker').farbtastic('#txtColor');
+        });
+    </script>
+}

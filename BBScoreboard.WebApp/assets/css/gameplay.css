@@ -1,0 +1,110 @@
+﻿.no-border-top td {
+    border-top: none;
+}
+
+.game-settings {
+    margin: 0
+}
+
+.center td {
+    text-align: center;
+}
+
+.action-input td {
+    padding: 7px;
+}
+
+    .action-input td button {
+        min-width: 77px;
+    }
+
+.action-point {
+    font-weight: bold;
+    font-size: larger;
+}
+
+.score td, .score span {
+    font-size: 16px;
+    text-align: center;
+}
+
+    .score td.score-total {
+        font-weight: bold;
+        width: 60px;
+    }
+
+    .score td.score-name {
+        text-align: left;
+        font-weight: bold;
+        border-right: 1px solid #ddd;
+        font-size: 22px;
+    }
+
+    .score td.score-q {
+        border-right: 1px solid #ddd;
+        width: 45px;
+    }
+
+        .score td.score-q span {
+            font-weight: normal;
+        }
+
+.score thead .normal {
+    vertical-align: middle
+}
+
+.po-action, .po-action-other {
+    min-height: 55px;
+}
+
+.recent-action, .recent-action td {
+    background-color: rgba(255, 255, 0, 0.25) !important;
+}
+
+.player-handle {
+    cursor: pointer;
+}
+
+    .player-handle td.ps-no {
+        width: 29px;
+    }
+
+    .player-handle td {
+        border-bottom: 1px solid #ddd;
+    }
+
+        .player-handle td.ps-no span.badge {
+            font-size: larger;
+        }
+
+td.ps-chk {
+    width: 13px;
+    display: none;
+}
+
+.ps-chk input {
+    margin: 0;
+}
+
+.game-handle {
+    cursor: pointer;
+}
+
+    .game-handle .badge {
+        font-size: 28px;
+        font-weight: normal;
+        line-height: normal;
+    }
+
+.table.table-stats th, .table.table-stats td {
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.action-handle {
+    cursor: pointer;
+}
+
+.play-by-play .muted {
+    color: #aaa;
+}

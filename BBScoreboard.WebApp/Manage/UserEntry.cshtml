@@ -1,0 +1,128 @@
+﻿@using BBScoreboard
+@{
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+
+    Page.Title = "User";
+    Layout = "~/_SiteLayout.cshtml";
+
+    PageData["SubTitle"] = "Manage";
+
+    Validation.RequireField("FirstName", "You must specify the First Name.");
+    Validation.RequireField("LastName", "You must specify the Last Name.");
+    Validation.RequireField("Email", "You must specify the Email.");
+
+    var db = new BBScoreboardEntities();
+    var query = new WebQuery(this);
+
+    var userId = query.GetId("User");
+    var accessTypes = Manage.AccessTypes;
+    var item = userId > 0 ? db.UserProfiles.Find(userId) : db.UserProfiles.Create();
+
+    if (userId == -1)
+    {
+        Validation.RequireField("newPassword", "The new password field is required.");
+        Validation.Add("confirmPassword",
+            Validator.Required("The confirm new password field is required."),
+            Validator.EqualsTo("newPassword", "The new password and confirmation password do not match."));
+        Validation.Add("newPassword",
+            Validator.StringLength(
+                maxLength: Int32.MaxValue,
+                minLength: 6,
+                errorMessage: "New password must be at least 6 characters"));
+    }
+
+    if (IsPost && Validation.IsValid() && ModelState.IsValid)
+    {
+        AntiForgery.Validate();
+
+        item.Email = Request["Email"];
+        item.FirstName = Request["FirstName"];
+        item.LastName = Request["LastName"];
+        item.Access = DataHelper.GetInt32(Request["Access"]);
+
+        if (userId == -1)
+        {
+            db.UserProfiles.Add(item);
+        }
+        db.SaveChanges();
+
+        if (userId == -1)
+        {
+            var newPassword = Request.Form["newPassword"];
+            WebSecurity.CreateAccount(item.Email, newPassword, false);
+        }
+
+        query.Remove("User");
+        query.Redirect("~/Manage/Users");
+
+        // User already exists
+        //ModelState.AddFormError("Name is already in use.");
+    }
+}
+
+<div class="row">
+    <div class="col-sm-4">
+        <form class="form-horizontal" method="post">
+            @AntiForgery.GetHtml()
+            @Html.ValidationSummary("Entry was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+
+            <div class="form-group">
+                <label class="control-label" for="Email">Email</label>
+                <div class="controls">
+                    <input type="text" name="Email" class="col-md-3 form-control" value="@item.Email" placeholder="Email" @Validation.For("Email")>
+                    @Html.ValidationMessage("Email")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="FirstName">First Name</label>
+                <div class="controls">
+                    <input type="text" name="FirstName" class="col-md-3 form-control" value="@item.FirstName" placeholder="First Name" @Validation.For("FirstName")>
+                    @Html.ValidationMessage("FirstName")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="LastName">Last Name</label>
+                <div class="controls">
+                    <input type="text" name="LastName" class="col-md-3 form-control" value="@item.LastName" placeholder="Last Name" @Validation.For("LastName")>
+                    @Html.ValidationMessage("LastName")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="Access">Access</label>
+                <div class="controls">
+                    <select name="Access" class="form-control" style="width: auto">
+                        @foreach (var p in accessTypes)
+                        {
+                            <option value="@p.Key" @(item.Access == p.Key ? "selected=\"selected\"" : "")>@p.Value</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            @if (userId == -1)
+            {
+                <div class="form-group">
+                    <label class="control-label" for="newPassword">New Password</label>
+                    <div class="controls">
+                        <input type="password" name="newPassword" class="col-md-3 form-control" value="" placeholder="New Password" @Validation.For("newPassword")>
+                        @Html.ValidationMessage("newPassword")
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="confirmPassword">Confirm Password</label>
+                    <div class="controls">
+                        <input type="password" name="confirmPassword" class="col-md-3 form-control" value="" placeholder="Confirm Password" @Validation.For("confirmPassword")>
+                        @Html.ValidationMessage("confirmPassword")
+                    </div>
+                </div>
+            }
+
+            <div class="form-group">
+                <div class="controls">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a href="~/Manage/Users" class="btn btn-default">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

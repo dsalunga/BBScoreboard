@@ -1,0 +1,152 @@
+﻿@using BBScoreboard
+@{
+    if (!AppHelper.CheckLogin(this, true)) { return; }
+
+    Page.Title = "Game Entry";
+    Layout = "~/_SiteLayout.cshtml";
+
+    PageData["SubTitle"] = "Manage";
+
+    Validation.RequireField("Number", "You must specify the Game Number.");
+
+    var query = new WebQuery(this);
+    var db = new BBScoreboardEntities();
+
+    var seasonId = query.GetId("Season");
+    if (seasonId == -1)
+    {
+        query.Redirect("~/Manage/Seasons");
+        return;
+    }
+
+    var gameId = query.GetId("Game");
+    var season = db.UCSeasons.Single(i => i.Id == seasonId);
+    var item = gameId > 0 ? db.UCGames.Single(i => i.Id == gameId) : db.UCGames.Create();
+    IEnumerable<UCTeam> teams = new List<UCTeam>();
+
+    if (IsPost && Validation.IsValid() && ModelState.IsValid)
+    {
+        item.GameNumber = DataHelper.GetInt32(Request, "Number");
+        item.Venue = DataHelper.Get(Request, "Venue");
+        item.GameDate = DataHelper.GetDateTime(Request["Date"]);
+        item.Team1 = DataHelper.GetId(Request, "Team1");
+        item.Team2 = DataHelper.GetId(Request, "Team2");
+        item.LastActivityDate = DateTime.UtcNow;
+        item.LastUpdate = DateTime.UtcNow;
+        item.LastUpdateForRefresh = DateTime.UtcNow;
+
+        if (gameId == -1)
+        {
+            item.SeasonId = seasonId;
+            item.CurrentQuarter = 1;
+            db.UCGames.Add(item);
+        }
+        db.SaveChanges();
+
+        query.Remove("Game");
+        query.Redirect("~/Manage/Games");
+        return;
+
+        //ModelState.AddFormError("Name is already in use.");
+    }
+    else
+    {
+        teams = db.UCTeams;
+    }
+}
+
+<div class="row">
+    <div class="col-sm-5">
+        <form class="form-horizontal" method="post">
+            @Html.ValidationSummary("Entry was unsuccessful. Please correct the errors and try again.", excludeFieldErrors: true, htmlAttributes: null)
+            <div class="form-group">
+                <label class="control-label" for="Number">Game</label>
+                <div class="controls">
+                    <select name="Number" style="width: auto" class="form-control">
+                        @for (int i = 1; i <= 250; i++)
+                        {
+                            <option value="@i" @(item.GameNumber == i ? "selected=selected" : "")>@i</option>
+                        }
+                    </select>
+                    @Html.ValidationMessage("Number")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="Date">Date</label>
+                <div class="controls">
+                    <input type="text" name="Date" placeholder="Date" class="form-control col-sm-6" value="@(gameId == -1 ? DateTime.Now : item.GameDate)" @Validation.For("Date")>
+                    @Html.ValidationMessage("Date")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="Venue">Venue</label>
+                <div class="controls">
+                    <textarea name="Venue" class="col-md-4 form-control" placeholder="Venue" rows="3" @Validation.For("Venue")>@item.Venue</textarea>
+                    @Html.ValidationMessage("Venue")
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="control-label" for="Team1">Team vs Team</label>
+                <div class="controls">
+                    <select name="Team1" style="width: auto" class="form-control">
+                        @if (item.Team1 == -1)
+                        {
+                            <option value="-1"></option>
+                        }
+                        @foreach (var t in teams)
+                        {
+                            if (t.Active) {
+                            <option value="@t.Id" @(item.Team1 == t.Id ? "selected=\"selected\"" : "")>@t.Name</option>
+                            }
+                        }
+                    </select>
+                    <div style="padding: 5px">VS</div>
+                    <select name="Team2" style="width: auto" class="form-control">
+                        @if (item.Team2 == -1)
+                        {
+                            <option value="-1"></option>
+                        }
+                        @foreach (var t in teams)
+                        {
+                            if (t.Active)
+                            {
+                            <option value="@t.Id" @(item.Team2 == t.Id ? "selected=\"selected\"" : "")>@t.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+            @* <br />
+                <div class="control-group">
+                    <label class="control-label" for="price">Price</label>
+                    <div class="controls">
+                        <input id="txtChar" onkeypress="return isNumberKey(event)" type="text" class="span2" name="price" placeholder="Price" @Validation.For("price")>
+                        @Html.ValidationMessage("price")
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="quantity">Quantity</label>
+                    <div class="controls">
+                        <input onkeypress="return isNumberKey(event)" type="text" class="span1" name="quantity" placeholder="Quantity" @Validation.For("quantity")>
+                        @Html.ValidationMessage("quantity")
+                    </div>
+                </div>
+
+
+                 <div class="control-group">
+                    <label class="control-label" for="description">Description</label>
+                    <div class="controls">
+                        <input type="text" class="span4" name="description" placeholder="Description" @Validation.For("description")>
+                        @Html.ValidationMessage("description")
+                    </div>
+                </div>*@
+
+            <div class="form-group">
+                <div class="controls">
+                    <button type="submit" class="btn btn-primary">Update</button>
+                    <a href="~/Manage/Games?Season=@seasonId" class="btn btn-default">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

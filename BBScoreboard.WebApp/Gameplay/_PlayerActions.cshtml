@@ -1,0 +1,150 @@
+﻿@using BBScoreboard
+@{
+    GameplayModel gameplay = Page.GamePlay;
+    UCGame game = Page.Game;
+    bool showAllActions = Page.ShowAllActions;
+    List<IEnumerable<UCGameplayAction>> recentActions = Page.RecentActions;
+    UserProfile user = Page.User;
+}
+
+<div class="row">
+    @for (int i = 0; i < 2; i++)
+    {
+        var teamModel = gameplay.TeamModels[i];
+        var team = teamModel.Team;
+        var playerModels = teamModel.PlayerModels;
+        var actions = recentActions[i];
+        <div class="col-md-6">
+            <br />
+            <strong>PLAY BY PLAY</strong>
+            <div style="max-height: 280px; overflow: auto; clear: both;">
+                <table class="table table-striped table-bordered table-condensed table-hover">
+                    <tbody class="play-by-play" id="actions@(team.Id)">
+                        @foreach (var action in actions)
+                        {
+                            <tr class="action-handle @(action.Status == 1 ? "" : "muted")" data-action-id="@action.Id" data-action-status="@action.Status" id="action@(action.Id)">
+                                @*@(!showAllActions ? "" : "Q" + action.Quarter)*@
+                                <td>@Html.Raw(GameHelper.ActionToString(action, teamModel))@* 37:14 Free Throw Made (13 M. Pajo)... 56-60*@</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="pull-right">
+    <label for="autoRefreshCheck" class="checkbox-inline">
+        <input id="autoRefreshCheck" type="checkbox" value="1" checked="checked" />&nbsp;Auto Refresh
+    </label>
+</div>
+@if (!game.IsEnded && user.Access != (int)AccessType.ReadOnly)
+{
+<form method="post" id="formPlayerOptions">
+    <div id="playerOptions" class="modal" tabindex="-1" role="dialog" aria-labelledby="playerOptionsLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h3 id="playerOptionsLabel" class="modal-title"><span class="label label-default" id="po-number" style="font-size: 18px; line-height: normal"></span>&nbsp;<span id="po-label"></span></h3>
+                </div>
+                <div class="modal-body">
+                    <div id="po-panel-actions">
+                        <table class="center action-input">
+                            <tr>
+                                <td>
+                                    <button data-po-action="1" data-po-action-arg="1" type="button" class="btn btn-success po-action" title="Alt+1" accesskey="1">
+                                        <div class="action-point">1</div>
+                                        made
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="2" data-po-action-arg="2" type="button" class="btn btn-success po-action" title="Alt+2" accesskey="2">
+                                        <div class="action-point">2</div>
+                                        made
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="3" data-po-action-arg="3" type="button" class="btn btn-success po-action" title="Alt+3" accesskey="3">
+                                        <div class="action-point">3</div>
+                                        made
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="6" data-po-action-arg="0" type="button" class="btn btn-info po-action" title="Alt+W" accesskey="w">block</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button data-po-action="-1" data-po-action-arg="0" type="button" class="btn btn-danger po-action" title="Alt+4" accesskey="4">
+                                        <div class="action-point">1</div>
+                                        missed
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="-2" data-po-action-arg="0" type="button" class="btn btn-danger po-action" title="Alt+5" accesskey="5">
+                                        <div class="action-point">2</div>
+                                        missed
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="-3" data-po-action-arg="0" type="button" class="btn btn-danger po-action" title="Alt+6" accesskey="6">
+                                        <div class="action-point">3</div>
+                                        missed
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="5" data-po-action-arg="0" type="button" class="btn btn-info po-action" title="Alt+S" accesskey="s">steal</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button data-po-action="8" data-po-action-arg="0" type="button" class="btn btn-warning po-action" title="Alt+C" accesskey="c">
+                                        <div>def</div>
+                                        reb
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="7" data-po-action-arg="0" type="button" class="btn btn-warning po-action" title="Alt+V" accesskey="v">
+                                        <div>off</div>
+                                        reb
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="4" data-po-action-arg="0" type="button" class="btn btn-warning po-action" title="Alt+A" accesskey="a">assist</button>
+                                </td>
+                                <td>
+                                    <button data-po-action="9" data-po-action-arg="0" type="button" class="btn btn-info po-action" title="Alt+Q" accesskey="Q">turnover</button>
+                                </td>
+
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button data-po-action="10" data-po-action-arg="0" type="button" class="btn btn-inverse po-action" title="Alt+Z" accesskey="z">
+                                        per<div>foul</div>
+                                    </button>
+                                </td>
+                                <td>
+                                    <button data-po-action="11" data-po-action-arg="0" type="button" class="btn btn-inverse po-action" title="Alt+X" accesskey="x">
+                                        tech<div>foul</div>
+                                    </button>
+                                </td>
+                                <td>
+                                    @*<button type="button" class="btn po-action-other">other1</button>*@
+                                </td>
+                                <td>
+                                    @*<button id="btn-subs" type="button" class="btn btn-inverse po-action-other">subs</button>*@
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-default" data-dismiss="modal" aria-hidden="true">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+}
