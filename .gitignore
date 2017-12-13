@@ -1,5 +1,6 @@
 *.suo
 *.user
+*.jfm
 .vs
 obj
 
@@ -7,3 +8,4 @@ obj
 /BBScoreboard.Database/bin
 /BBScoreboard.Database/BBScoreboard.Database.dbmdl
 /IISExpress/Logs
+packages/
