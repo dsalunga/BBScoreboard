@@ -25,9 +25,12 @@ public class StatsModel : PageModel
     public Dictionary<int, UCTeam> TeamMap { get; set; } = new();
     public Dictionary<int, BasketballPosition> Positions { get; set; } = new();
 
-    public async Task<IActionResult> OnGetAsync(int id)
+    public async Task<IActionResult> OnGetAsync(int? id, int? game)
     {
-        Gp = await _gameplay.BuildGameplayModelAsync(id);
+        var gameId = id ?? game;
+        if (!gameId.HasValue || gameId.Value <= 0) return NotFound();
+
+        Gp = await _gameplay.BuildGameplayModelAsync(gameId.Value);
         if (Gp == null) return NotFound();
         var allTeams = await _teams.GetAllAsync();
         TeamMap = allTeams.ToDictionary(t => t.Id);

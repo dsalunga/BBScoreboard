@@ -1,19 +1,19 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 COPY BBScoreboard.Domain/BBScoreboard.Domain.csproj BBScoreboard.Domain/
 COPY BBScoreboard.Application/BBScoreboard.Application.csproj BBScoreboard.Application/
 COPY BBScoreboard.Infrastructure/BBScoreboard.Infrastructure.csproj BBScoreboard.Infrastructure/
 COPY BBScoreboard.Web/BBScoreboard.Web.csproj BBScoreboard.Web/
-COPY BBScoreboard.sln .
-RUN dotnet restore
+COPY BBScoreboard.slnx .
+RUN dotnet restore BBScoreboard.slnx
 
 COPY . .
 RUN dotnet publish BBScoreboard.Web/BBScoreboard.Web.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 

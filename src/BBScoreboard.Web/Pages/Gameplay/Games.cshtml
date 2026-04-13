@@ -34,11 +34,11 @@
                 <td>
                     @if (Model.View == "Stats")
                     {
-                        <a asp-page="Stats" asp-route-game="@game.Id">@game.GameNumber</a>
+                        <a asp-page="Stats" asp-route-id="@game.Id">@game.GameNumber</a>
                     }
                     else
                     {
-                        <a asp-page="Manager" asp-route-game="@game.Id">@game.GameNumber</a>
+                        <a asp-page="Manager" asp-route-id="@game.Id">@game.GameNumber</a>
                     }
                 </td>
                 <td>@game.GameDate.ToString("yyyy-MM-dd")</td>

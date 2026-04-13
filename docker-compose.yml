@@ -1,14 +1,19 @@
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: bbscoreboard
-      POSTGRES_USER: bbadmin
-      POSTGRES_PASSWORD: bbscoreboard_pass
+      POSTGRES_DB: ${POSTGRES_DB:-bbscoreboard}
+      POSTGRES_USER: ${POSTGRES_USER:-bbadmin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD?Set POSTGRES_PASSWORD in your environment or .env file}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bbadmin} -d ${POSTGRES_DB:-bbscoreboard}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   web:
     build:
@@ -17,12 +22,49 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      postgres:
+        condition: service_healthy
     environment:
       - Database__Provider=postgres
-      - ConnectionStrings__Postgres=Host=db;Database=bbscoreboard;Username=bbadmin;Password=bbscoreboard_pass
-      - DefaultUserEmail=admin@bbscoreboard.local
-      - DefaultPassword=Admin123!
+      - ConnectionStrings__Postgres=Host=postgres;Database=${POSTGRES_DB:-bbscoreboard};Username=${POSTGRES_USER:-bbadmin};Password=${POSTGRES_PASSWORD}
+      - BootstrapAdmin__Email=${BOOTSTRAP_ADMIN_EMAIL}
+      - BootstrapAdmin__Password=${BOOTSTRAP_ADMIN_PASSWORD}
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles:
+      - sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD?Set MSSQL_SA_PASSWORD in your environment or .env file}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  web-sqlserver:
+    profiles:
+      - sqlserver
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      - Database__Provider=sqlserver
+      - ConnectionStrings__SqlServer=Server=sqlserver,1433;Database=${MSSQL_DB:-BBScoreboard};User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True
+      - BootstrapAdmin__Email=${BOOTSTRAP_ADMIN_EMAIL}
+      - BootstrapAdmin__Password=${BOOTSTRAP_ADMIN_PASSWORD}
 
 volumes:
   pgdata:
+  sqldata:

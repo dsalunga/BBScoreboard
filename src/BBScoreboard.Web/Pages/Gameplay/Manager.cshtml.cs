@@ -32,12 +32,15 @@ public class ManagerModel : PageModel
     public bool ShowAllActions { get; set; }
     public bool IsAdmin { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int id)
+    public async Task<IActionResult> OnGetAsync(int? id, int? game)
     {
+        var gameId = id ?? game;
+        if (!gameId.HasValue || gameId.Value <= 0) return NotFound();
+
         EnableTimer = await _config.GetBoolAsync("EnableTimer", true);
         ShowAllActions = await _config.GetBoolAsync("ShowAllActions", false);
         IsAdmin = User.IsInRole("Admin");
-        Gp = await _gameplay.BuildGameplayModelAsync(id);
+        Gp = await _gameplay.BuildGameplayModelAsync(gameId.Value);
         if (Gp == null) return NotFound();
         var allTeams = await _teams.GetAllAsync();
         TeamMap = allTeams.ToDictionary(t => t.Id);

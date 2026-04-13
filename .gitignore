@@ -2,11 +2,10 @@
 *.user
 *.jfm
 .vs
+.vscode
 obj
 bin
-
-/BBScoreboard/bin
-/BBScoreboard.Database/bin
-/BBScoreboard.Database/BBScoreboard.Database.dbmdl
-/IISExpress/Logs
-packages/
+.env
+*.trx
+TestResults/
+**/TestResults/

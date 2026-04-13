@@ -1,24 +1,37 @@
 # BBScoreboard .NET 10 Cross-Platform Migration Checklist
 
-Last updated: 2025-07-24
+Last updated: 2026-04-13
 Owner: TBD
-Status: Implementation Complete (pending production cutover)
+Status: Validation Updated (implementation advanced; parity/cutover still pending)
+
+## Validation Snapshot (2026-04-13)
+
+- Build/test validation: `dotnet restore`, `dotnet build -c Release`, `dotnet test -c Release` passed locally (`99/99`).
+- Implemented and validated in code:
+  - Separate EF Core migration sets now exist for both providers under `src/BBScoreboard.Infrastructure/Migrations/Postgres` and `.../Migrations/SqlServer`.
+  - `dotnet-ef` pinned via local tool manifest (`10.0.5`) to match runtime.
+  - Bootstrap admin seeding now assigns the Identity `Admin` role.
+  - Gameplay routes now accept previous `game` and current `id` query keys; game list links were corrected.
+  - Missing navigation targets were resolved (`/Manage/Referees`, `/Account/ForgotPassword` pages).
+  - Plaintext password defaults were removed from current app config and compose files.
+- Remaining validation gap in this environment:
+  - Docker daemon is unavailable locally, so Postgres/SQL Server container runtime checks could not be executed here (CI workflows were added for this).
 
 ## 1) Objectives and Guardrails
 
-- [x] Migrate the app from legacy ASP.NET Web Pages (.NET Framework 4.7.1) to ASP.NET Core on `net10.0`.
-- [x] Run on Windows, macOS, and Linux (dev + production).
+- [x] Migrate the app from the pre-.NET 10 ASP.NET Web Pages implementation to ASP.NET Core on `net10.0`.
+- [ ] Run on Windows, macOS, and Linux (dev + production).
 - [x] Support both PostgreSQL and SQL Server.
 - [x] Make PostgreSQL the default provider.
-- [x] Preserve existing behavior and workflows (scoreboard, gameplay sync, stats, admin/management).
+- [ ] Preserve existing behavior and workflows (scoreboard, gameplay sync, stats, admin/management).
 - [ ] Ship with a feature parity gate so no page/endpoint/schema feature is missed.
 
 ## 2) Migration Strategy (Recommended)
 
 - [x] Use a parallel rewrite (new ASP.NET Core solution) rather than in-place conversion.
-- [x] Keep legacy app running while porting modules incrementally.
+- [x] Keep the previous production app running while porting modules incrementally.
 - [ ] Define "parity complete" as all checkboxes in sections 6-10 checked and tested on both DBs.
-- [x] Keep legacy URLs stable where feasible to reduce user retraining.
+- [ ] Keep existing URLs stable where feasible to reduce user retraining.
 
 ## 3) Target Architecture (net10.0)
 
@@ -26,7 +39,7 @@ Status: Implementation Complete (pending production cutover)
 - [x] `BBScoreboard.Domain` (entities, enums, business rules).
 - [x] `BBScoreboard.Application` (use cases/services).
 - [x] `BBScoreboard.Infrastructure` (EF Core, auth, provider-specific persistence).
-- [x] `BBScoreboard.Tests` (unit + integration + parity tests).
+- [ ] `BBScoreboard.Tests` (unit + integration + parity tests).
 
 ## 4) Database Strategy (PostgreSQL default, SQL Server supported)
 
@@ -49,11 +62,11 @@ Status: Implementation Complete (pending production cutover)
 
 ### 4.3 Migrations and schema management
 
-- [ ] Maintain separate migration sets per provider:
+- [x] Maintain separate migration sets per provider:
   - `Migrations/Postgres`
   - `Migrations/SqlServer`
-- [ ] Ensure both migration sets represent the same logical schema.
-- [ ] Add CI check that both providers can migrate from empty DB.
+- [x] Ensure both migration sets represent the same logical schema.
+- [x] Add CI check that both providers can migrate from empty DB.
 
 ### 4.4 Data types and compatibility checks
 
@@ -72,17 +85,17 @@ Status: Implementation Complete (pending production cutover)
 - [x] Implement first-run bootstrap admin from config (equivalent to `DefaultUserEmail`/`DefaultPassword`).
 - [x] Enforce secure password hashing and password policy.
 - [x] Implement lockout parity for repeated failed logins.
-- [x] Decide fate of legacy external OAuth pages:
+- [x] Decide fate of external OAuth pages from the prior implementation:
   - ~~Keep and modernize~~
   - OR deprecate and remove with documented migration note (deprecated — external OAuth removed)
 
 ## 6) Feature Parity Checklist: Page/Route Inventory (No omissions)
 
-Use this as the source of truth. A route is complete only when functionality and role restrictions match legacy behavior.
+Use this as the source of truth. A route is complete only when functionality and role restrictions match baseline pre-migration behavior.
 
 ### 6.1 Core shell/startup pages
 
-- [x] `/_AppStart` behavior parity (startup init and bootstrap admin logic)
+- [ ] Startup bootstrap behavior parity (startup init and bootstrap admin logic)
 - [x] `/_SiteLayout` parity (navigation, role-aware menu visibility)
 - [x] `/` (`Default.cshtml`) dashboard parity
 - [x] `/Login` custom login/logout flow parity
@@ -91,8 +104,8 @@ Use this as the source of truth. A route is complete only when functionality and
 
 - [x] `/Gameplay/Games?View=Manager`
 - [x] `/Gameplay/Games?View=Stats`
-- [x] `/Gameplay/Manager?Game={id}`
-- [x] `/Gameplay/Stats?Game={id}`
+- [x] `/Gameplay/Manager?Game={id}` (supports both `game` and `id`)
+- [x] `/Gameplay/Stats?Game={id}` (supports both `game` and `id`)
 
 ### 6.3 Gameplay partials/components (must not be skipped)
 
@@ -116,21 +129,21 @@ Use this as the source of truth. A route is complete only when functionality and
 - [x] `/Manage/Users`
 - [x] `/Manage/UserEntry`
 - [x] `/Manage/UserPassword`
-- [ ] `/Manage/Referees` (placeholder page behavior preserved or intentionally replaced) — **Deferred: legacy page was a placeholder with no functionality**
+- [x] `/Manage/Referees` (placeholder page behavior preserved or intentionally replaced) — **Implemented as placeholder page**
 
 ### 6.5 Admin pages/tools
 
-- [x] `/Admin/Setup` (reset, fix dates, app settings)
+- [ ] `/Admin/Setup` (reset, fix dates, app settings)
 - [ ] `/Admin/QueryAnalyzer.aspx` (explicit decision: port, restrict, or retire) — **Decision: Retire. Direct SQL access is a security risk; use EF Core tooling instead.**
 
-### 6.6 Account pages (legacy template surface)
+### 6.6 Account pages (pre-migration template surface)
 
 - [x] `/Account/Login` (consolidated into `/Login` page)
 - [x] `/Account/Logout`
 - [ ] `/Account/Manage` — **Deferred: low priority, can use admin user management**
 - [x] `/Account/Register`
 - [ ] `/Account/RegisterService` — **Deprecated: external OAuth removed**
-- [ ] `/Account/ForgotPassword` — **Deferred: requires email service integration**
+- [x] `/Account/ForgotPassword` — **Implemented as a non-email placeholder guidance flow**
 - [ ] `/Account/PasswordReset` — **Deferred: requires email service integration**
 - [ ] `/Account/Confirm` — **Deferred: requires email service integration**
 - [ ] `/Account/Thanks` — **Deprecated: external OAuth removed**
@@ -140,7 +153,7 @@ Use this as the source of truth. A route is complete only when functionality and
 
 ## 7) Feature Parity Checklist: Gameplay Sync API
 
-Legacy web service: `GameplaySync.asmx`.
+Previous web service contract: `GameplaySync.asmx`.
 
 ### 7.1 Endpoint parity
 
@@ -155,11 +168,11 @@ Legacy web service: `GameplaySync.asmx`.
 
 ### 7.2 Behavioral parity requirements
 
-- [x] Same polling semantics and refresh signals (`return` codes: 0/1/2 behavior).
-- [x] Same undo/redo behavior for action status.
-- [x] Same timer update semantics and UTC conversions.
-- [x] Same scoreboard update semantics (quarter/overtime handling).
-- [x] Same incremental delta payload fields consumed by existing JS.
+- [ ] Same polling semantics and refresh signals (`return` codes: 0/1/2 behavior).
+- [ ] Same undo/redo behavior for action status.
+- [ ] Same timer update semantics and UTC conversions.
+- [ ] Same scoreboard update semantics (quarter/overtime handling).
+- [ ] Same incremental delta payload fields consumed by existing JS.
 
 ## 8) Data Model and Schema Checklist
 
@@ -176,7 +189,7 @@ Legacy web service: `GameplaySync.asmx`.
 - [x] `AppConfig`
 - [x] `UserProfile` (replaced by `ApplicationUser` extending `IdentityUser<int>`)
 
-### 8.2 Required schema updates from legacy `App_Data/Updates.sql`
+### 8.2 Required schema updates from pre-migration `App_Data/Updates.sql`
 
 - [x] `UCPlayer.Active`
 - [x] `UCTeam.Active`
@@ -185,12 +198,12 @@ Legacy web service: `GameplaySync.asmx`.
 
 ### 8.3 Identity/membership tables migration plan
 
-Legacy app relies on SimpleMembership tables not defined in the SQL project.
+The pre-migration app relies on SimpleMembership tables not defined in the SQL project.
 
 - [x] Inventory existing membership-related tables in production DBs.
 - [x] Define migration mapping to ASP.NET Core Identity tables.
 - [ ] Migrate user accounts safely (hash migration strategy or forced reset strategy).
-- [x] Verify lockout/password reset behavior parity.
+- [ ] Verify lockout/password reset behavior parity.
 
 ### 8.4 Seed data parity
 
@@ -246,8 +259,8 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 - [x] Preserve main navigation and role-based visibility.
 - [x] Preserve keyboard shortcuts/action hotkeys in gameplay UI.
 - [x] Preserve auto-refresh toggle and poll interval behavior.
-- [x] Preserve play-by-play rendering and action time editing.
-- [x] Preserve game options modal behavior.
+- [ ] Preserve play-by-play rendering and action time editing.
+- [ ] Preserve game options modal behavior.
 - [ ] Preserve print-friendly stats view.
 - [x] Preserve color picker behavior for team color management.
 
@@ -257,11 +270,11 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 
 - [ ] Validate app startup on macOS, Linux, Windows.
 - [x] Docker support with default PostgreSQL profile.
-- [ ] Optional SQL Server profile for dual-db verification.
+- [x] Optional SQL Server profile for dual-db verification.
 
 ### 11.2 Configuration and secrets
 
-- [x] Move settings from `Web.config` to `appsettings*.json` + env vars.
+- [x] Move settings from prior `Web.config` usage to `appsettings*.json` + env vars.
 - [x] No plaintext passwords in repo.
 - [x] Provider-specific connection strings documented.
 
@@ -279,7 +292,7 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 - [x] Unit tests for substitution and game state transitions.
 - [x] API contract tests for all gameplay sync endpoints.
 - [x] Integration tests for PostgreSQL.
-- [ ] Integration tests for SQL Server.
+- [x] Integration tests for SQL Server.
 - [x] Auth/RBAC tests for all protected routes.
 
 ### 12.2 Parity testing
@@ -288,13 +301,13 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 - [ ] Validate every route in section 6 across all roles.
 - [ ] Validate all commands in manage/admin pages.
 - [ ] Validate full live-game flow end-to-end.
-- [ ] Validate legacy and new outputs for sample games match.
+- [ ] Validate baseline and new outputs for sample games match.
 
 ### 12.3 CI gates
 
-- [ ] CI matrix: `{ provider: postgres, sqlserver }`.
-- [ ] Fail build if migrations fail for either provider.
-- [ ] Fail build if parity/API contract tests fail.
+- [x] CI matrix: `{ provider: postgres, sqlserver }`.
+- [x] Fail build if migrations fail for either provider.
+- [x] Fail build if parity/API contract tests fail.
 
 ## 13) Data Migration and Cutover Checklist
 
@@ -326,7 +339,7 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 ### Phase D: Gameplay UI parity
 
 - [x] Port scoreboard manager and stats views.
-- [x] Port all gameplay modals/partials and JS flows.
+- [ ] Port all gameplay modals/partials and JS flows.
 
 ### Phase E: Hardening and cutover
 
@@ -335,18 +348,18 @@ Legacy app relies on SimpleMembership tables not defined in the SQL project.
 
 ## 15) Open Decisions (Must be resolved early)
 
-- [x] Keep legacy `/Account/*` page set, or consolidate into one modern auth UX? -> **Consolidated: core auth (Login/Register/Logout) kept; external OAuth pages deprecated.**
+- [x] Keep previous `/Account/*` page set, or consolidate into one modern auth UX? -> **Consolidated: core auth (Login/Register/Logout) kept; external OAuth pages deprecated.**
 - [x] Keep `Admin/QueryAnalyzer` in production, restrict to non-prod, or remove? -> **Retired: security risk; use EF Core tooling instead.**
 - [x] Keep ASMX-compatible route contracts exactly, or move clients to JSON API v2 and deprecate ASMX compatibility? -> **Moved to JSON REST API via GameplaySyncController.**
-- [x] Password migration strategy: hash migration compatibility vs forced reset. -> **Forced reset: new Identity password hashing; legacy users must reset.**
+- [x] Password migration strategy: hash migration compatibility vs forced reset. -> **Forced reset: new Identity password hashing; existing users must reset.**
 
 ## 16) Definition of Done
 
 All items below must be true:
 
-- [x] Every route/partial/API/table listed in this document is explicitly marked complete, retired, or replaced with sign-off.
-- [x] PostgreSQL is default and fully supported.
+- [ ] Every route/partial/API/table listed in this document is explicitly marked complete, retired, or replaced with sign-off.
+- [ ] PostgreSQL is default and fully supported.
 - [ ] SQL Server support is verified in CI and staging.
-- [x] Role-based behavior and gameplay/stat correctness match legacy behavior.
+- [ ] Role-based behavior and gameplay/stat correctness match baseline pre-migration behavior.
 - [ ] Cross-platform runtime validated on macOS/Linux/Windows.
 - [ ] Production cutover runbook executed successfully with rollback readiness.

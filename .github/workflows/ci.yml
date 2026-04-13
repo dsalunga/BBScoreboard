@@ -1,0 +1,235 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build-test-cross-platform:
+    name: Build and Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Restore
+        run: dotnet restore src/BBScoreboard.slnx
+
+      - name: Build
+        run: dotnet build src/BBScoreboard.slnx -c Release --no-restore
+
+      - name: Test (non-database)
+        run: dotnet test src/BBScoreboard.slnx -c Release --no-build --filter "Category!=Database"
+
+  runtime-smoke-cross-platform:
+    name: Runtime Smoke (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build web app
+        run: dotnet build src/BBScoreboard.Web/BBScoreboard.Web.csproj -c Release
+
+      - name: Start app and verify /Login
+        shell: pwsh
+        run: |
+          $env:Database__AutoMigrate = "false"
+          $env:Database__Provider = "postgres"
+          $env:ConnectionStrings__Postgres = "Host=localhost;Database=unused;Username=unused;Password=unused"
+          $env:ASPNETCORE_URLS = "http://127.0.0.1:5079"
+
+          $process = Start-Process dotnet -ArgumentList "run --project src/BBScoreboard.Web --no-build --configuration Release" -PassThru
+          try {
+            $ready = $false
+            for ($i = 0; $i -lt 40; $i++) {
+              Start-Sleep -Seconds 2
+              try {
+                $response = Invoke-WebRequest -Uri "http://127.0.0.1:5079/Login" -UseBasicParsing
+                if ($response.StatusCode -eq 200) {
+                  $ready = $true
+                  break
+                }
+              } catch {
+                # retry
+              }
+            }
+
+            if (-not $ready) {
+              throw "Runtime smoke check failed. /Login did not return 200."
+            }
+          }
+          finally {
+            if ($process -and -not $process.HasExited) {
+              Stop-Process -Id $process.Id -Force
+            }
+          }
+
+  database-postgres:
+    name: Database Integration (Postgres)
+    runs-on: ubuntu-latest
+    env:
+      CI_POSTGRES_PASSWORD: Pg${{ github.run_id }}_Db!
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: bbscoreboard_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ env.CI_POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d bbscoreboard_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Restore and Build
+        run: |
+          dotnet restore src/BBScoreboard.slnx
+          dotnet build src/BBScoreboard.slnx -c Release --no-restore
+
+      - name: Run Postgres migrations
+        env:
+          TEST_POSTGRES_CONNECTION_STRING: Host=localhost;Port=5432;Database=bbscoreboard_ci;Username=postgres;Password=${{ env.CI_POSTGRES_PASSWORD }}
+        run: |
+          Database__Provider=postgres \
+          ConnectionStrings__Postgres="$TEST_POSTGRES_CONNECTION_STRING" \
+          dotnet tool run dotnet-ef database update \
+            --project src/BBScoreboard.Infrastructure \
+            --startup-project src/BBScoreboard.Web \
+            --context PostgresBbScoreboardDbContext
+
+      - name: Run Postgres integration tests
+        env:
+          TEST_POSTGRES_CONNECTION_STRING: Host=localhost;Port=5432;Database=bbscoreboard_ci;Username=postgres;Password=${{ env.CI_POSTGRES_PASSWORD }}
+        run: dotnet test src/BBScoreboard.Tests/BBScoreboard.Tests.csproj -c Release --no-build --filter "Category=Database&Provider=Postgres"
+
+  database-sqlserver:
+    name: Database Integration (SQL Server)
+    runs-on: ubuntu-latest
+    env:
+      CI_SQL_PASSWORD: Sql${{ github.run_id }}_Db!
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_PID: "Developer"
+          MSSQL_SA_PASSWORD: ${{ env.CI_SQL_PASSWORD }}
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P '$MSSQL_SA_PASSWORD' -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore local tools
+        run: dotnet tool restore
+
+      - name: Restore and Build
+        run: |
+          dotnet restore src/BBScoreboard.slnx
+          dotnet build src/BBScoreboard.slnx -c Release --no-restore
+
+      - name: Run SQL Server migrations
+        env:
+          TEST_SQLSERVER_CONNECTION_STRING: Server=localhost,1433;Database=BBScoreboardCI;User ID=sa;Password=${{ env.CI_SQL_PASSWORD }};TrustServerCertificate=True
+        run: |
+          Database__Provider=sqlserver \
+          ConnectionStrings__SqlServer="$TEST_SQLSERVER_CONNECTION_STRING" \
+          dotnet tool run dotnet-ef database update \
+            --project src/BBScoreboard.Infrastructure \
+            --startup-project src/BBScoreboard.Web \
+            --context SqlServerBbScoreboardDbContext
+
+      - name: Run SQL Server integration tests
+        env:
+          TEST_SQLSERVER_CONNECTION_STRING: Server=localhost,1433;Database=master;User ID=sa;Password=${{ env.CI_SQL_PASSWORD }};TrustServerCertificate=True
+        run: dotnet test src/BBScoreboard.Tests/BBScoreboard.Tests.csproj -c Release --no-build --filter "Category=Database&Provider=SqlServer"
+
+  docker-compose-smoke:
+    name: Docker Compose Profiles
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Default profile (Postgres) smoke
+        env:
+          POSTGRES_PASSWORD: Pg${{ github.run_id }}_Compose!
+          BOOTSTRAP_ADMIN_EMAIL: admin-ci@example.com
+          BOOTSTRAP_ADMIN_PASSWORD: Admin${{ github.run_id }}_Compose!
+        run: |
+          docker compose up -d --build web
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              break
+            fi
+            sleep 3
+          done
+          curl -fsS http://127.0.0.1:8080/health
+          docker compose down -v
+
+      - name: SQL Server profile smoke
+        env:
+          POSTGRES_PASSWORD: Pg${{ github.run_id }}_Compose!
+          BOOTSTRAP_ADMIN_EMAIL: admin-ci@example.com
+          BOOTSTRAP_ADMIN_PASSWORD: Admin${{ github.run_id }}_Compose!
+          MSSQL_SA_PASSWORD: Sql${{ github.run_id }}_Compose!
+        run: |
+          docker compose --profile sqlserver up -d --build web-sqlserver
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8081/health >/dev/null; then
+              break
+            fi
+            sleep 5
+          done
+          curl -fsS http://127.0.0.1:8081/health
+          docker compose --profile sqlserver down -v

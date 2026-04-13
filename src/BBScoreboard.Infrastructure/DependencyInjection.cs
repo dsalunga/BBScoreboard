@@ -19,6 +19,9 @@ public static class DependencyInjection
         {
             switch (provider)
             {
+                case "inmemory":
+                    options.UseInMemoryDatabase("BBScoreboardTestDb");
+                    break;
                 case "sqlserver":
                     options.UseSqlServer(
                         configuration.GetConnectionString("SqlServer"),

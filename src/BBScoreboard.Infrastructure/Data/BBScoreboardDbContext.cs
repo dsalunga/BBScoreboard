@@ -8,7 +8,7 @@ namespace BBScoreboard.Infrastructure.Data;
 
 public class BBScoreboardDbContext : IdentityDbContext<ApplicationUser, IdentityRole<int>, int>
 {
-    public BBScoreboardDbContext(DbContextOptions<BBScoreboardDbContext> options)
+    public BBScoreboardDbContext(DbContextOptions options)
         : base(options) { }
 
     public DbSet<UCSeason> UCSeasons => Set<UCSeason>();
