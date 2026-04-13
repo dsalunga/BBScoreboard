@@ -1,0 +1,43 @@
+@page
+@model BBScoreboard.Web.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "_Layout";
+}
+
+<h3>Register</h3>
+
+@if (Model.Errors.Count > 0)
+{
+    <div class="alert alert-danger">
+        @foreach (var e in Model.Errors)
+        {
+            <div>@e</div>
+        }
+    </div>
+}
+
+<form method="post" class="col-md-6">
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">First Name</label>
+        <input type="text" name="firstName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Last Name</label>
+        <input type="text" name="lastName" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required minlength="6" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Confirm Password</label>
+        <input type="password" name="confirmPassword" class="form-control" required minlength="6" />
+    </div>
+    <button type="submit" class="btn btn-primary">Register</button>
+    <a asp-page="/Login" class="btn btn-link">Already have an account?</a>
+</form>

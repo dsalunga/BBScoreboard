@@ -1,0 +1,42 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.TeamsModel
+@{
+    ViewData["Title"] = "Manage Teams";
+}
+
+<h3>Teams</h3>
+
+<form method="post" class="row g-3 mb-4">
+    <input type="hidden" name="handler" value="Create" />
+    <div class="col-auto">
+        <input type="text" name="name" class="form-control" placeholder="Team name" required />
+    </div>
+    <div class="col-auto">
+        <input type="color" name="teamColor" class="form-control form-control-color" value="#000000" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Add Team</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead><tr><th>Name</th><th>Color</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var t in Model.TeamList)
+        {
+            <tr>
+                <td style="border-left: 4px solid @t.TeamColor">@t.Name</td>
+                <td>@t.TeamColor</td>
+                <td>@(t.Active ? "Yes" : "No")</td>
+                <td>
+                    <a asp-page="TeamEntry" asp-route-id="@t.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a asp-page="Players" asp-route-teamId="@t.Id" class="btn btn-sm btn-outline-info">Players</a>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@t.Id" />
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete team and all players?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

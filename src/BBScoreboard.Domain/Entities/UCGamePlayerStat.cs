@@ -1,0 +1,26 @@
+namespace BBScoreboard.Domain.Entities;
+
+public class UCGamePlayerStat
+{
+    public int Id { get; set; }
+    public int PlayerId { get; set; }
+    public int FGA { get; set; }
+    public int FGM { get; set; }
+    public int GameId { get; set; }
+    public int Quarter { get; set; }
+    public int FGA3 { get; set; }
+    public int FGM3 { get; set; }
+    public int FTA { get; set; }
+    public int FTM { get; set; }
+    public int REBOFF { get; set; }
+    public int REBDEF { get; set; }
+    public int ASSIST { get; set; }
+    public int STEAL { get; set; }
+    public int BLOCK { get; set; }
+    public int TURNOVER { get; set; }
+    public int FOULPER { get; set; }
+    public int FOULTECH { get; set; }
+    public bool InFloor { get; set; }
+    public int TeamId { get; set; }
+    public DateTime LastUpdate { get; set; }
+}

@@ -1,0 +1,45 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.UserEntryModel
+@using BBScoreboard.Domain.Enums
+@{
+    ViewData["Title"] = Model.IsNew ? "New User" : "Edit User";
+}
+
+<h3>@ViewData["Title"]</h3>
+
+<form method="post" class="col-md-6">
+    @if (!Model.IsNew)
+    {
+        <input type="hidden" name="id" value="@Model.AppUser!.Id" />
+    }
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control" value="@Model.AppUser?.Email" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">First Name</label>
+        <input type="text" name="firstName" class="form-control" value="@Model.AppUser?.FirstName" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Last Name</label>
+        <input type="text" name="lastName" class="form-control" value="@Model.AppUser?.LastName" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Access</label>
+        <select name="access" class="form-select">
+            @foreach (var a in Enum.GetValues<AccessType>())
+            {
+                <option value="@((int)a)" selected="@((int)a == (int)(Model.AppUser?.Access ?? AccessType.ReadOnly))">@a</option>
+            }
+        </select>
+    </div>
+    @if (Model.IsNew)
+    {
+        <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" required minlength="6" />
+        </div>
+    }
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Users" class="btn btn-secondary">Cancel</a>
+</form>

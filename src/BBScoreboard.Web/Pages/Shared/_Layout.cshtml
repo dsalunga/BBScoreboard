@@ -1,0 +1,90 @@
+﻿@using BBScoreboard.Domain.Enums
+@using BBScoreboard.Infrastructure.Identity
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+@{
+    var isAuthenticated = SignInManager.IsSignedIn(User);
+    var isAdmin = false;
+    if (isAuthenticated)
+    {
+        var user = await UserManager.GetUserAsync(User);
+        isAdmin = user?.Access == AccessType.Admin;
+    }
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BBScoreboard</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/gameplay.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-dark bg-dark fixed-top">
+            <div class="container">
+                <a class="navbar-brand" asp-page="/Index">BBScoreboard</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent"
+                        aria-controls="navContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navContent">
+                    @if (isAuthenticated)
+                    {
+                        <ul class="navbar-nav me-auto">
+                            <li class="nav-item"><a class="nav-link" asp-page="/Index">Home</a></li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Gameplay</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" asp-page="/Gameplay/Games" asp-route-view="Manager">Scoreboard</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Gameplay/Games" asp-route-view="Stats">Game Stats</a></li>
+                                </ul>
+                            </li>
+                            @if (isAdmin)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Manage</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" asp-page="/Manage/Seasons">Seasons &amp; Games</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Manage/Teams">Teams &amp; Players</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Manage/Referees">Referees</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Manage/Users">Users</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Setup">Settings</a></li>
+                                    </ul>
+                                </li>
+                            }
+                        </ul>
+                        <ul class="navbar-nav">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-page="/Login" asp-route-action="Logoff">Sign Out</a>
+                            </li>
+                        </ul>
+                    }
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container" style="margin-top: 70px;">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="border-top footer text-muted mt-4 py-3">
+        <div class="container text-center">
+            &copy; @DateTime.Now.Year BBScoreboard
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

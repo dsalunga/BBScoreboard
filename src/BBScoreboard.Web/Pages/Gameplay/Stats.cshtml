@@ -1,0 +1,112 @@
+@page
+@model BBScoreboard.Web.Pages.Gameplay.StatsModel
+@using BBScoreboard.Application.Services
+@using BBScoreboard.Domain
+@{
+    ViewData["Title"] = "Game Stats";
+    var game = Model.Gp?.Game;
+}
+
+@if (game == null)
+{
+    <div class="alert alert-warning">Game not found.</div>
+    return;
+}
+
+<h3>Game @game.GameNumber — @Model.GetTeamName(game.Team1) vs @Model.GetTeamName(game.Team2)</h3>
+
+<!-- Score Summary -->
+<table class="table table-sm table-bordered w-auto mb-4">
+    <thead><tr><th>Team</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead>
+    <tbody>
+        @foreach (var tm in Model.Gp!.TeamModels)
+        {
+            <tr>
+                <td style="border-left: 4px solid @(tm.Team.TeamColor);">@tm.Team.Name</td>
+                <td>@tm.Stat.Q1</td><td>@tm.Stat.Q2</td><td>@tm.Stat.Q3</td><td>@tm.Stat.Q4</td>
+                <td><strong>@GameHelper.GetScore(tm.Stat)</strong></td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@foreach (var tm in Model.Gp!.TeamModels)
+{
+    <h4 style="border-left: 5px solid @(tm.Team.TeamColor); padding-left: 10px;">@tm.Team.Name</h4>
+    <div class="table-responsive">
+        <table class="table table-sm table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>#</th><th>Name</th><th>POS</th>
+                    <th>MIN</th><th>PTS</th>
+                    <th>FGM</th><th>FGA</th><th>FG%</th>
+                    <th>3PM</th><th>3PA</th><th>3P%</th>
+                    <th>FTM</th><th>FTA</th><th>FT%</th>
+                    <th>ORB</th><th>DRB</th><th>REB</th>
+                    <th>AST</th><th>STL</th><th>BLK</th>
+                    <th>TO</th><th>PF</th><th>TF</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pm in tm.PlayerModels.OrderByDescending(p => PlayerHelper.GetPoints(p.Stat)))
+                {
+                    var s = pm.Stat;
+                    var pts = PlayerHelper.GetPoints(s);
+                    var fgm = s.FGM;
+                    var fga = s.FGA;
+                    var fgPct = fga > 0 ? (fgm * 100.0 / fga).ToString("0.0") : "-";
+                    var tpm = s.FGM3;
+                    var tpa = s.FGA3;
+                    var tpPct = tpa > 0 ? (tpm * 100.0 / tpa).ToString("0.0") : "-";
+                    var ftm = s.FTM;
+                    var fta = s.FTA;
+                    var ftPct = fta > 0 ? (ftm * 100.0 / fta).ToString("0.0") : "-";
+                    <tr>
+                        <td>@pm.Player.PlayerNumber</td>
+                        <td>@pm.Player.FirstName @pm.Player.LastName</td>
+                        <td>@(Model.Positions.TryGetValue(pm.Player.PositionId, out var pos) ? pos.ShortName : "")</td>
+                        <td>-</td>
+                        <td><strong>@pts</strong></td>
+                        <td>@fgm</td><td>@fga</td><td>@fgPct</td>
+                        <td>@tpm</td><td>@tpa</td><td>@tpPct</td>
+                        <td>@ftm</td><td>@fta</td><td>@ftPct</td>
+                        <td>@s.REBOFF</td><td>@s.REBDEF</td><td>@PlayerHelper.GetRebounds(s)</td>
+                        <td>@s.ASSIST</td><td>@s.STEAL</td><td>@s.BLOCK</td>
+                        <td>@s.TURNOVER</td><td>@s.FOULPER</td><td>@s.FOULTECH</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                @{
+                    var allStats = tm.PlayerModels.Select(p => p.Stat).ToList();
+                    var totPts = allStats.Sum(s => PlayerHelper.GetPoints(s));
+                    var totFgm = allStats.Sum(s => s.FGM);
+                    var totFga = allStats.Sum(s => s.FGA);
+                    var tot3m = allStats.Sum(s => s.FGM3);
+                    var tot3a = allStats.Sum(s => s.FGA3);
+                    var totFtm = allStats.Sum(s => s.FTM);
+                    var totFta = allStats.Sum(s => s.FTA);
+                }
+                <tr class="fw-bold">
+                    <td colspan="3">TOTAL</td>
+                    <td>-</td>
+                    <td>@totPts</td>
+                    <td>@totFgm</td><td>@totFga</td><td>@(totFga > 0 ? (totFgm*100.0/totFga).ToString("0.0") : "-")</td>
+                    <td>@tot3m</td><td>@tot3a</td><td>@(tot3a > 0 ? (tot3m*100.0/tot3a).ToString("0.0") : "-")</td>
+                    <td>@totFtm</td><td>@totFta</td><td>@(totFta > 0 ? (totFtm*100.0/totFta).ToString("0.0") : "-")</td>
+                    <td>@allStats.Sum(s => s.REBOFF)</td>
+                    <td>@allStats.Sum(s => s.REBDEF)</td>
+                    <td>@allStats.Sum(s => PlayerHelper.GetRebounds(s))</td>
+                    <td>@allStats.Sum(s => s.ASSIST)</td>
+                    <td>@allStats.Sum(s => s.STEAL)</td>
+                    <td>@allStats.Sum(s => s.BLOCK)</td>
+                    <td>@allStats.Sum(s => s.TURNOVER)</td>
+                    <td>@allStats.Sum(s => s.FOULPER)</td>
+                    <td>@allStats.Sum(s => s.FOULTECH)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+}
+
+<a asp-page="Games" class="btn btn-secondary mt-3">Back to Games</a>

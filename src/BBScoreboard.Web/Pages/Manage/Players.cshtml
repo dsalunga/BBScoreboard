@@ -1,0 +1,57 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.PlayersModel
+@{
+    ViewData["Title"] = "Manage Players";
+}
+
+<h3>Players — @Model.Team?.Name</h3>
+
+<form method="post" class="row g-3 mb-4">
+    <input type="hidden" name="handler" value="Create" />
+    <input type="hidden" name="teamId" value="@Model.TeamId" />
+    <div class="col-auto">
+        <input type="number" name="playerNumber" class="form-control" placeholder="#" style="width:80px" required />
+    </div>
+    <div class="col-auto">
+        <input type="text" name="firstName" class="form-control" placeholder="First Name" required />
+    </div>
+    <div class="col-auto">
+        <input type="text" name="lastName" class="form-control" placeholder="Last Name" required />
+    </div>
+    <div class="col-auto">
+        <select name="positionId" class="form-select">
+            @foreach (var p in Model.Positions)
+            {
+                <option value="@p.Id">@p.ShortName — @p.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Add</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead><tr><th>#</th><th>Name</th><th>Position</th><th>Active</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var p in Model.PlayerList)
+        {
+            <tr>
+                <td>@p.PlayerNumber</td>
+                <td>@p.FirstName @p.LastName</td>
+                <td>@(Model.PositionMap.TryGetValue(p.PositionId, out var pos) ? pos.ShortName : "")</td>
+                <td>@(p.Active ? "Yes" : "No")</td>
+                <td>
+                    <a asp-page="PlayerEntry" asp-route-id="@p.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <input type="hidden" name="teamId" value="@Model.TeamId" />
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete player?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-page="Teams" class="btn btn-secondary">Back to Teams</a>

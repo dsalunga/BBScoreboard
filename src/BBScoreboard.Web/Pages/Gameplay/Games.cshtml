@@ -1,0 +1,52 @@
+@page
+@model BBScoreboard.Web.Pages.Gameplay.GamesModel
+@{
+    ViewData["Title"] = "Games";
+}
+
+<h3>Games</h3>
+
+<div class="mb-3">
+    <label>Season:</label>
+    <select id="seasonSelect" class="form-select d-inline-block w-auto" onchange="location.href='?Season=' + this.value + '&View=@Model.View'">
+        @foreach (var s in Model.Seasons)
+        {
+            <option value="@s.Id" selected="@(s.Id == Model.SeasonId)">@s.Name</option>
+        }
+    </select>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Game #</th>
+            <th>Date</th>
+            <th>Venue</th>
+            <th>Teams</th>
+            <th>Started</th>
+            <th>ID</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var game in Model.Games)
+        {
+            <tr>
+                <td>
+                    @if (Model.View == "Stats")
+                    {
+                        <a asp-page="Stats" asp-route-game="@game.Id">@game.GameNumber</a>
+                    }
+                    else
+                    {
+                        <a asp-page="Manager" asp-route-game="@game.Id">@game.GameNumber</a>
+                    }
+                </td>
+                <td>@game.GameDate.ToString("yyyy-MM-dd")</td>
+                <td>@game.Venue</td>
+                <td>@Model.GetTeamName(game.Team1) vs @Model.GetTeamName(game.Team2)</td>
+                <td>@(game.IsStarted ? "✓" : "")</td>
+                <td>@game.Id</td>
+            </tr>
+        }
+    </tbody>
+</table>

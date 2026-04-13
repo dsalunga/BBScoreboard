@@ -1,0 +1,353 @@
+@page
+@model BBScoreboard.Web.Pages.Gameplay.ManagerModel
+@using BBScoreboard.Application.Services
+@using BBScoreboard.Domain
+@{
+    ViewData["Title"] = "Scoreboard Manager";
+    var game = Model.Gp?.Game;
+}
+
+@if (game == null)
+{
+    <div class="alert alert-warning">Game not found.</div>
+    return;
+}
+
+<h3>Game @game.GameNumber — @Model.GetTeamName(game.Team1) vs @Model.GetTeamName(game.Team2)</h3>
+
+@if (!game.IsStarted)
+{
+    <h4>Starting Five</h4>
+    <form method="post">
+        <input type="hidden" name="cmd" value="Start" />
+        <input type="hidden" name="gameId" value="@game.Id" />
+        <div class="row">
+            @for (int t = 0; t < 2; t++)
+            {
+                var team = Model.Gp!.TeamModels[t];
+                <div class="col-md-6">
+                    <h5 style="border-left: 5px solid @(team.Team.TeamColor); padding-left: 10px;">@team.Team.Name</h5>
+                    @foreach (var player in team.Players.Where(p => p.Active))
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input starting-check" type="checkbox" name="players@(t)[]" value="@player.Id" />
+                            <label class="form-check-label">#@player.PlayerNumber @player.FirstName @player.LastName</label>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        <div class="mt-3">
+            <label>Game Time (min):</label>
+            <select name="smm" class="form-select d-inline-block w-auto">
+                @for (int m = 1; m <= 59; m++)
+                {
+                    <option value="@m" selected="@(m == 20)">@m</option>
+                }
+            </select>
+            <div class="form-check d-inline-block ms-3">
+                <input class="form-check-input" type="checkbox" name="autoTimer" value="true" checked />
+                <label class="form-check-label">Auto-start Timer</label>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success mt-3" id="btnStart">Start Game</button>
+    </form>
+}
+else
+{
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <span class="badge bg-primary fs-5">@GameHelper.GetQuarterString(game.CurrentQuarter)</span>
+        @if (Model.EnableTimer)
+        {
+            <span id="timer" class="fs-4 fw-bold">--:--</span>
+            <button id="btnTimer" class="btn btn-sm btn-outline-secondary" onclick="toggleTimer()">
+                @(game.IsTimeOn ? "Stop" : "Start")
+            </button>
+        }
+        @if (Model.IsAdmin && !game.IsEnded)
+        {
+            <form method="post" class="d-inline">
+                <input type="hidden" name="cmd" value="Reset" />
+                <input type="hidden" name="gameId" value="@game.Id" />
+                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reset game? All data will be deleted.')">Reset</button>
+            </form>
+        }
+        <form method="post" class="d-inline">
+            <input type="hidden" name="cmd" value="Lock" />
+            <input type="hidden" name="gameId" value="@game.Id" />
+            <button type="submit" class="btn btn-sm @(game.IsEnded ? "btn-warning" : "btn-outline-warning")">
+                @(game.IsEnded ? "Unlock" : "Lock")
+            </button>
+        </form>
+        <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#gameOptionsModal">Options</button>
+    </div>
+
+    <div class="row">
+        @for (int t = 0; t < Model.Gp!.TeamModels.Count; t++)
+        {
+            var team = Model.Gp.TeamModels[t];
+            var teamStat = team.Stat;
+            var totalScore = GameHelper.GetScore(teamStat);
+            <div class="col-md-6">
+                <h5 style="border-left: 5px solid @(team.Team.TeamColor); padding-left: 10px;">
+                    @team.Team.Name <span class="badge bg-dark">@totalScore</span>
+                </h5>
+
+                <!-- Score table -->
+                <table class="table table-sm table-bordered">
+                    <thead><tr><th>Team</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>@team.Team.Name</td>
+                            <td id="ts@(team.TeamId)_q1">@teamStat.Q1</td>
+                            <td id="ts@(team.TeamId)_q2">@teamStat.Q2</td>
+                            <td id="ts@(team.TeamId)_q3">@teamStat.Q3</td>
+                            <td id="ts@(team.TeamId)_q4">@teamStat.Q4</td>
+                            <td id="ts@(team.TeamId)_total"><strong>@totalScore</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- Floor Players -->
+                <h6>On Court</h6>
+                <table class="table table-sm">
+                    <thead><tr><th>#</th><th>Name</th><th>PTS</th><th>RB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th><th>TF</th></tr></thead>
+                    <tbody>
+                        @foreach (var pm in team.PlayerModels.Where(p => p.Stat.InFloor))
+                        {
+                            var s = pm.Stat;
+                            <tr class="player-row" data-player-id="@pm.PlayerId" data-team-id="@team.TeamId"
+                                style="cursor:pointer" @(game.IsEnded ? "" : "data-bs-toggle=modal data-bs-target=#playerActionsModal")>
+                                <td>@pm.Player.PlayerNumber</td>
+                                <td>@pm.Player.FirstName @pm.Player.LastName</td>
+                                <td>@PlayerHelper.GetPoints(s)</td>
+                                <td>@PlayerHelper.GetRebounds(s)</td>
+                                <td>@s.ASSIST</td><td>@s.STEAL</td><td>@s.BLOCK</td>
+                                <td>@s.TURNOVER</td><td>@s.FOULPER</td><td>@s.FOULTECH</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Bench Players -->
+                <h6>Bench</h6>
+                <table class="table table-sm">
+                    <thead><tr><th>#</th><th>Name</th><th>PTS</th><th>RB</th><th>AST</th><th>STL</th><th>BLK</th><th>TO</th><th>PF</th><th>TF</th></tr></thead>
+                    <tbody>
+                        @foreach (var pm in team.PlayerModels.Where(p => !p.Stat.InFloor))
+                        {
+                            var s = pm.Stat;
+                            <tr class="player-row" data-player-id="@pm.PlayerId" data-team-id="@team.TeamId"
+                                style="cursor:pointer" @(game.IsEnded ? "" : "data-bs-toggle=modal data-bs-target=#playerActionsModal")>
+                                <td>@pm.Player.PlayerNumber</td>
+                                <td>@pm.Player.FirstName @pm.Player.LastName</td>
+                                <td>@PlayerHelper.GetPoints(s)</td>
+                                <td>@PlayerHelper.GetRebounds(s)</td>
+                                <td>@s.ASSIST</td><td>@s.STEAL</td><td>@s.BLOCK</td>
+                                <td>@s.TURNOVER</td><td>@s.FOULPER</td><td>@s.FOULTECH</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <!-- Play-by-Play -->
+                <h6>Play-by-Play</h6>
+                <div id="actions@(team.TeamId)" class="small" style="max-height: 300px; overflow-y: auto;">
+                    @{
+                        var q = game.CurrentQuarter > 4 ? 4 : game.CurrentQuarter;
+                        var teamActions = team.Actions
+                            .Where(a => Model.ShowAllActions ? true : (q == 4 ? a.Quarter >= q : a.Quarter == q))
+                            .Where(a => a.Status == 1)
+                            .OrderByDescending(a => a.ActionDate)
+                            .Take(Model.ShowAllActions ? int.MaxValue : 20);
+                    }
+                    @foreach (var action in teamActions)
+                    {
+                        <div class="action-item" data-action-id="@action.Id">
+                            @Html.Raw(GameHelper.ActionToString(action, team.Players))
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Player Actions Modal -->
+    <div class="modal fade" id="playerActionsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="playerActionsTitle">Player Actions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-2">
+                        <div class="col-3"><button class="btn btn-success w-100 action-btn" data-action="1" data-arg="1" title="Alt+1">FT</button></div>
+                        <div class="col-3"><button class="btn btn-success w-100 action-btn" data-action="2" data-arg="2" title="Alt+2">2PT</button></div>
+                        <div class="col-3"><button class="btn btn-success w-100 action-btn" data-action="3" data-arg="3" title="Alt+3">3PT</button></div>
+                        <div class="col-3"><button class="btn btn-danger w-100 action-btn" data-action="-1" data-arg="0" title="Alt+4">FTm</button></div>
+                        <div class="col-3"><button class="btn btn-danger w-100 action-btn" data-action="-2" data-arg="0" title="Alt+5">2PTm</button></div>
+                        <div class="col-3"><button class="btn btn-danger w-100 action-btn" data-action="-3" data-arg="0" title="Alt+6">3PTm</button></div>
+                        <div class="col-3"><button class="btn btn-info w-100 action-btn" data-action="7" data-arg="0" title="Alt+Q">RBO</button></div>
+                        <div class="col-3"><button class="btn btn-info w-100 action-btn" data-action="8" data-arg="0" title="Alt+W">RBD</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 action-btn" data-action="4" data-arg="0" title="Alt+A">AST</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 action-btn" data-action="5" data-arg="0" title="Alt+S">STL</button></div>
+                        <div class="col-3"><button class="btn btn-warning w-100 action-btn" data-action="6" data-arg="0" title="Alt+C">BLK</button></div>
+                        <div class="col-3"><button class="btn btn-secondary w-100 action-btn" data-action="9" data-arg="0" title="Alt+V">TO</button></div>
+                        <div class="col-3"><button class="btn btn-dark w-100 action-btn" data-action="10" data-arg="0" title="Alt+X">PF</button></div>
+                        <div class="col-3"><button class="btn btn-dark w-100 action-btn" data-action="11" data-arg="0" title="Alt+Z">TF</button></div>
+                    </div>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked />
+                        <label class="form-check-label" for="autoRefresh">Auto-refresh</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Options Modal -->
+    <div class="modal fade" id="gameOptionsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Game Options</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post">
+                    <div class="modal-body">
+                        <input type="hidden" name="cmd" value="UpdateGame" />
+                        <input type="hidden" name="gameId" value="@game.Id" />
+                        <div class="mb-3">
+                            <label>Quarter:</label>
+                            <select name="quarter" class="form-select w-auto d-inline-block">
+                                @for (int qi = 1; qi <= 9; qi++)
+                                {
+                                    var label = qi <= 4 ? $"Q{qi}" : $"OT{qi - 4}";
+                                    <option value="@qi" selected="@(qi == game.CurrentQuarter)">@label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="updateScores" value="true" />
+                            <label class="form-check-label">Update Scores</label>
+                        </div>
+                        @for (int t = 0; t < 2; t++)
+                        {
+                            var ts = Model.Gp!.TeamModels[t].Stat;
+                            <div class="row mb-2">
+                                <div class="col-3"><strong>@Model.Gp.TeamModels[t].Team.Name</strong></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q1" class="form-control form-control-sm" value="@ts.Q1" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q2" class="form-control form-control-sm" value="@ts.Q2" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q3" class="form-control form-control-sm" value="@ts.Q3" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q4" class="form-control form-control-sm" value="@ts.Q4" /></div>
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save changes</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    var gameId = @(game.Id);
+    var isTimeOn = @(game.IsTimeOn.ToString().ToLower());
+    var gameStarted = @(game.IsStarted.ToString().ToLower());
+    var gameEnded = @(game.IsEnded.ToString().ToLower());
+    var selectedPlayerId = 0;
+    var selectedTeamId = 0;
+    var lastUpdate = new Date().toISOString();
+
+    // Player row click handler
+    document.querySelectorAll('.player-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+            selectedPlayerId = parseInt(this.dataset.playerId);
+            selectedTeamId = parseInt(this.dataset.teamId);
+            var name = this.cells[1].textContent;
+            document.getElementById('playerActionsTitle').textContent = name;
+        });
+    });
+
+    // Action button click handler
+    document.querySelectorAll('.action-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (gameEnded) return;
+            var action = parseInt(this.dataset.action);
+            var arg = parseInt(this.dataset.arg);
+            sendAction(selectedPlayerId, selectedTeamId, action, arg);
+        });
+    });
+
+    function sendAction(playerId, teamId, action, arg) {
+        fetch('/api/GameplaySync/SendAction?gameId=' + gameId +
+              '&teamId=' + teamId + '&playerId=' + playerId +
+              '&action=' + action + '&arg=' + arg + '&recPlayerId=-1', {
+            method: 'POST'
+        }).then(function() {
+            if (document.getElementById('autoRefresh').checked) {
+                location.reload();
+            }
+        });
+    }
+
+    function toggleTimer() {
+        var start = isTimeOn ? 0 : 1;
+        var now = new Date();
+        fetch('/api/GameplaySync/UpdateTimer?gameId=' + gameId +
+              '&start=' + start +
+              '&timeLeft=' + now.toISOString() + '&tlMs=0' +
+              '&timerLastModified=' + now.toISOString() + '&tlmMs=0', {
+            method: 'POST'
+        }).then(function() { location.reload(); });
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (!e.altKey || gameEnded || selectedPlayerId === 0) return;
+        var map = { '1': [1,1], '2': [2,2], '3': [3,3], '4': [-1,0], '5': [-2,0], '6': [-3,0],
+                    'a': [4,0], 's': [5,0], 'c': [6,0], 'q': [7,0], 'w': [8,0],
+                    'v': [9,0], 'x': [10,0], 'z': [11,0] };
+        var key = e.key.toLowerCase();
+        if (map[key]) {
+            e.preventDefault();
+            sendAction(selectedPlayerId, selectedTeamId, map[key][0], map[key][1]);
+        }
+    });
+
+    // Auto-refresh polling
+    @if (game.IsStarted && !game.IsEnded)
+    {
+        <text>
+        setInterval(function() {
+            if (!document.getElementById('autoRefresh')?.checked) return;
+            fetch('/api/GameplaySync/GetDelta?gameId=' + gameId + '&lastUpdate=' + encodeURIComponent(lastUpdate))
+                .then(r => r.json())
+                .then(function(data) {
+                    if (data['return'] === 1 || data['return'] === 2) {
+                        location.reload();
+                    }
+                }).catch(function() {});
+        }, 2000);
+        </text>
+    }
+
+    // Pre-game: poll IsGameStarted
+    @if (!game.IsStarted)
+    {
+        <text>
+        setInterval(function() {
+            fetch('/api/GameplaySync/IsGameStarted?gameId=' + gameId)
+                .then(r => r.json())
+                .then(function(data) { if (data === 1) location.reload(); })
+                .catch(function() {});
+        }, 2000);
+        </text>
+    }
+</script>
+}

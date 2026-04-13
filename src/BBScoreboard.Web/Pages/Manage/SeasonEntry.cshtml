@@ -1,0 +1,17 @@
+@page "{id:int}"
+@model BBScoreboard.Web.Pages.Manage.SeasonEntryModel
+@{
+    ViewData["Title"] = "Edit Season";
+}
+
+<h3>Edit Season</h3>
+
+<form method="post" class="col-md-6">
+    <input type="hidden" name="id" value="@Model.Season!.Id" />
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input type="text" name="name" class="form-control" value="@Model.Season.Name" required />
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Seasons" class="btn btn-secondary">Cancel</a>
+</form>

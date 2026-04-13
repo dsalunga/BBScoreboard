@@ -1,0 +1,36 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.SeasonsModel
+@{
+    ViewData["Title"] = "Manage Seasons";
+}
+
+<h3>Seasons</h3>
+
+<form method="post" class="row g-3 mb-4">
+    <input type="hidden" name="handler" value="Create" />
+    <div class="col-auto">
+        <input type="text" name="name" class="form-control" placeholder="Season name" required />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Add Season</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead><tr><th>Name</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var s in Model.SeasonList)
+        {
+            <tr>
+                <td>@s.Name</td>
+                <td>
+                    <a asp-page="SeasonEntry" asp-route-id="@s.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@s.Id" />
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this season?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

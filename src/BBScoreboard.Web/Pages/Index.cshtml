@@ -1,0 +1,32 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<h2>BBScoreboard</h2>
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header"><h4>Gameplay</h4></div>
+            <div class="card-body">
+                <p><a asp-page="/Gameplay/Games" asp-route-view="Manager" class="btn btn-primary">Scoreboard</a></p>
+                <p><a asp-page="/Gameplay/Games" asp-route-view="Stats" class="btn btn-info">Game Stats</a></p>
+            </div>
+        </div>
+    </div>
+    @if (Model.IsAdmin)
+    {
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><h4>Management</h4></div>
+                <div class="card-body">
+                    <p><a asp-page="/Manage/Seasons" class="btn btn-default">Seasons &amp; Games</a></p>
+                    <p><a asp-page="/Manage/Teams" class="btn btn-default">Teams &amp; Players</a></p>
+                    <p><a asp-page="/Manage/Users" class="btn btn-default">Users</a></p>
+                    <p><a asp-page="/Admin/Setup" class="btn btn-default">Settings</a></p>
+                </div>
+            </div>
+        </div>
+    }
+</div>

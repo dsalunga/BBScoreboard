@@ -1,0 +1,49 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.GameEntryModel
+@{
+    ViewData["Title"] = Model.IsNew ? "New Game" : "Edit Game";
+}
+
+<h3>@ViewData["Title"]</h3>
+
+<form method="post" class="col-md-6">
+    <input type="hidden" name="seasonId" value="@Model.SeasonId" />
+    @if (!Model.IsNew)
+    {
+        <input type="hidden" name="id" value="@Model.Game!.Id" />
+    }
+    <div class="mb-3">
+        <label class="form-label">Game #</label>
+        <input type="number" name="gameNumber" class="form-control" value="@(Model.Game?.GameNumber ?? Model.NextGameNumber)" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Team 1</label>
+        <select name="team1" class="form-select" required>
+            <option value="">-- Select --</option>
+            @foreach (var t in Model.TeamList)
+            {
+                <option value="@t.Id" selected="@(t.Id == (Model.Game?.Team1 ?? 0))">@t.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Team 2</label>
+        <select name="team2" class="form-select" required>
+            <option value="">-- Select --</option>
+            @foreach (var t in Model.TeamList)
+            {
+                <option value="@t.Id" selected="@(t.Id == (Model.Game?.Team2 ?? 0))">@t.Name</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Date</label>
+        <input type="date" name="gameDate" class="form-control" value="@(Model.Game?.GameDate.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Venue</label>
+        <input type="text" name="venue" class="form-control" value="@(Model.Game?.Venue)" />
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Games" asp-route-seasonId="@Model.SeasonId" class="btn btn-secondary">Cancel</a>
+</form>

@@ -3,6 +3,7 @@
 *.jfm
 .vs
 obj
+bin
 
 /BBScoreboard/bin
 /BBScoreboard.Database/bin

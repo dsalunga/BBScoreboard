@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="BBScoreboard.Application/BBScoreboard.Application.csproj" />
+  <Project Path="BBScoreboard.Domain/BBScoreboard.Domain.csproj" />
+  <Project Path="BBScoreboard.Infrastructure/BBScoreboard.Infrastructure.csproj" />
+  <Project Path="BBScoreboard.Tests/BBScoreboard.Tests.csproj" />
+  <Project Path="BBScoreboard.Web/BBScoreboard.Web.csproj" />
+</Solution>

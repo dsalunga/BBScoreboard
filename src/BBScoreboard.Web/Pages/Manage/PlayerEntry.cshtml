@@ -1,0 +1,39 @@
+@page "{id:int}"
+@model BBScoreboard.Web.Pages.Manage.PlayerEntryModel
+@{
+    ViewData["Title"] = "Edit Player";
+}
+
+<h3>Edit Player</h3>
+
+<form method="post" class="col-md-6">
+    <input type="hidden" name="id" value="@Model.Player!.Id" />
+    <input type="hidden" name="teamId" value="@Model.Player.TeamId" />
+    <div class="mb-3">
+        <label class="form-label">Number</label>
+        <input type="number" name="playerNumber" class="form-control" value="@Model.Player.PlayerNumber" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">First Name</label>
+        <input type="text" name="firstName" class="form-control" value="@Model.Player.FirstName" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Last Name</label>
+        <input type="text" name="lastName" class="form-control" value="@Model.Player.LastName" required />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Position</label>
+        <select name="positionId" class="form-select">
+            @foreach (var p in Model.Positions)
+            {
+                <option value="@p.Id" selected="@(p.Id == Model.Player.PositionId)">@p.ShortName — @p.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="active" value="true" @(Model.Player.Active ? "checked" : "") />
+        <label class="form-check-label">Active</label>
+    </div>
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a asp-page="Players" asp-route-teamId="@Model.Player.TeamId" class="btn btn-secondary">Cancel</a>
+</form>

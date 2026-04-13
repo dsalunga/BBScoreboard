@@ -1,0 +1,42 @@
+@page
+@model BBScoreboard.Web.Pages.Manage.GamesModel
+@{
+    ViewData["Title"] = "Manage Games";
+}
+
+<h3>Games</h3>
+
+<div class="mb-3">
+    <label class="form-label">Season:</label>
+    <select id="seasonFilter" class="form-select w-auto d-inline-block" onchange="location.href='?seasonId='+this.value">
+        @foreach (var s in Model.Seasons)
+        {
+            <option value="@s.Id" selected="@(s.Id == Model.SeasonId)">@s.Name</option>
+        }
+    </select>
+    <a asp-page="GameEntry" asp-route-seasonId="@Model.SeasonId" class="btn btn-primary ms-3">Add Game</a>
+</div>
+
+<table class="table table-striped">
+    <thead><tr><th>#</th><th>Teams</th><th>Date</th><th>Venue</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var g in Model.GameList)
+        {
+            <tr>
+                <td>@g.GameNumber</td>
+                <td>@Model.GetTeamName(g.Team1) vs @Model.GetTeamName(g.Team2)</td>
+                <td>@g.GameDate.ToString("yyyy-MM-dd")</td>
+                <td>@g.Venue</td>
+                <td>@(g.IsEnded ? "Ended" : g.IsStarted ? "Started" : "New")</td>
+                <td>
+                    <a asp-page="GameEntry" asp-route-id="@g.Id" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@g.Id" />
+                        <input type="hidden" name="seasonId" value="@Model.SeasonId" />
+                        <button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete game and all data?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
