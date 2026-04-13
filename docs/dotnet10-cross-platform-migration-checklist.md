@@ -6,13 +6,18 @@ Status: Validation Updated (implementation advanced; parity/cutover still pendin
 
 ## Validation Snapshot (2026-04-13)
 
-- Build/test validation: `dotnet restore`, `dotnet build -c Release`, `dotnet test -c Release` passed locally (`99/99`).
+- Build/test validation: `dotnet restore`, `dotnet build -c Release`, `dotnet test -c Release` passed locally (`104/104`).
 - Implemented and validated in code:
   - Separate EF Core migration sets now exist for both providers under `src/BBScoreboard.Infrastructure/Migrations/Postgres` and `.../Migrations/SqlServer`.
   - `dotnet-ef` pinned via local tool manifest (`10.0.5`) to match runtime.
-  - Bootstrap admin seeding now assigns the Identity `Admin` role.
+  - Bootstrap admin seeding now ensures the configured admin account exists, has `Admin` role, and syncs password for local sign-in.
+  - Static asset mapping was fixed for local runs (`UseStaticWebAssets`) so login/dashboard styling loads reliably.
   - Gameplay routes now accept previous `game` and current `id` query keys; game list links were corrected.
   - Missing navigation targets were resolved (`/Manage/Referees`, `/Account/ForgotPassword` pages).
+  - Management create forms (`Seasons`, `Teams`, `Players`) now post to explicit handlers (`asp-page-handler="Create"`).
+  - Game create/update validation now blocks invalid combinations and normalizes date handling for PostgreSQL.
+  - Gameplay manager commands now have stricter RBAC and safer input validation/error handling.
+  - Admin setup now includes one-click demo data creation with direct Manager/Stats links.
   - Plaintext password defaults were removed from current app config and compose files.
 - Remaining validation gap in this environment:
   - Docker daemon is unavailable locally, so Postgres/SQL Server container runtime checks could not be executed here (CI workflows were added for this).
@@ -95,7 +100,7 @@ Use this as the source of truth. A route is complete only when functionality and
 
 ### 6.1 Core shell/startup pages
 
-- [ ] Startup bootstrap behavior parity (startup init and bootstrap admin logic)
+- [x] Startup bootstrap behavior parity (startup init and bootstrap admin logic)
 - [x] `/_SiteLayout` parity (navigation, role-aware menu visibility)
 - [x] `/` (`Default.cshtml`) dashboard parity
 - [x] `/Login` custom login/logout flow parity
@@ -133,8 +138,8 @@ Use this as the source of truth. A route is complete only when functionality and
 
 ### 6.5 Admin pages/tools
 
-- [ ] `/Admin/Setup` (reset, fix dates, app settings)
-- [ ] `/Admin/QueryAnalyzer.aspx` (explicit decision: port, restrict, or retire) — **Decision: Retire. Direct SQL access is a security risk; use EF Core tooling instead.**
+- [x] `/Admin/Setup` (reset, fix dates, app settings, quick demo creation)
+- [x] `/Admin/QueryAnalyzer.aspx` (explicit decision: port, restrict, or retire) — **Retired intentionally. Direct SQL access is a security risk; use EF Core tooling instead.**
 
 ### 6.6 Account pages (pre-migration template surface)
 

@@ -1,5 +1,6 @@
 using BBScoreboard.Domain.Entities;
 using BBScoreboard.Infrastructure.Data;
+using BBScoreboard.Infrastructure.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -40,10 +41,24 @@ public class DatabaseProviderIntegrationTests
             await context.Database.MigrateAsync();
 
             context.UCSeasons.Add(new UCSeason { Name = "2026-27" });
+            context.UCTeams.Add(new UCTeam { Name = "Postgres Team A", TeamColor = "#000000", Active = true });
+            context.UCTeams.Add(new UCTeam { Name = "Postgres Team B", TeamColor = "#ffffff", Active = true });
             await context.SaveChangesAsync();
 
             var season = await context.UCSeasons.SingleAsync();
             Assert.Equal("2026-27", season.Name);
+
+            var teams = await context.UCTeams.OrderBy(t => t.Id).ToListAsync();
+            var gameService = new GameService(context);
+            var game = await gameService.CreateAsync(
+                season.Id,
+                gameNumber: 1,
+                team1: teams[0].Id,
+                team2: teams[1].Id,
+                gameDate: new DateTime(2026, 4, 13), // Unspecified kind
+                venue: "Postgres Arena");
+
+            Assert.Equal(DateTimeKind.Utc, game.GameDate.Kind);
         }
         finally
         {

@@ -6,8 +6,7 @@
 
 <h3>Players — @Model.Team?.Name</h3>
 
-<form method="post" class="row g-3 mb-4">
-    <input type="hidden" name="handler" value="Create" />
+<form method="post" asp-page-handler="Create" class="row g-3 mb-4">
     <input type="hidden" name="teamId" value="@Model.TeamId" />
     <div class="col-auto">
         <input type="number" name="playerNumber" class="form-control" placeholder="#" style="width:80px" required />

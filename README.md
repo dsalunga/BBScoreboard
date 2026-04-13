@@ -46,6 +46,21 @@ BBScoreboard is a cross-platform ASP.NET Core app for live basketball scoring, g
    - Start app:
      - `dotnet run --project src/BBScoreboard.Web`
 
+## Quick Play Setup
+
+After signing in as an admin:
+
+1. Open `/Admin/Setup`.
+2. Click `Create Demo Game Setup`.
+3. Click `Open Manager` to start and play the seeded demo game.
+
+The demo flow creates:
+
+- one demo season
+- two demo teams
+- eight players per team
+- one ready-to-start game
+
 ## Database Migrations
 
 Migrations are maintained separately per provider:
@@ -83,7 +98,8 @@ See: `.github/workflows/ci.yml`
 ## Security Notes
 
 - No plaintext runtime passwords are committed in active app config.
-- Bootstrap admin is created only when credentials are provided.
+- Bootstrap admin is created/updated only when credentials are provided.
+- On startup, the bootstrap admin password is synced to `BootstrapAdmin__Password` for reliable local sign-in.
 - Change bootstrap credentials immediately after first login.
 
 ## License

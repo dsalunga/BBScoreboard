@@ -160,13 +160,19 @@ public class ServiceIntegrationTests : IDisposable
     public async Task GameService_CreateAndGetBySeason()
     {
         var svc = new GameService(_db);
+        var season1 = await new SeasonService(_db).CreateAsync("S1");
+        var season2 = await new SeasonService(_db).CreateAsync("S2");
+        var t1 = await new TeamService(_db).CreateAsync("Team 1", "#111111", true);
+        var t2 = await new TeamService(_db).CreateAsync("Team 2", "#222222", true);
+        var t3 = await new TeamService(_db).CreateAsync("Team 3", "#333333", true);
+        var t4 = await new TeamService(_db).CreateAsync("Team 4", "#444444", true);
 
-        var now = DateTime.UtcNow;
-        await svc.CreateAsync(100, 1, 1, 2, now, "Venue A");
-        await svc.CreateAsync(100, 2, 3, 4, now, "Venue B");
-        await svc.CreateAsync(200, 1, 1, 3, now, "Venue C");
+        var now = DateTime.UtcNow.Date;
+        await svc.CreateAsync(season1.Id, 1, t1.Id, t2.Id, now, "Venue A");
+        await svc.CreateAsync(season1.Id, 2, t3.Id, t4.Id, now, "Venue B");
+        await svc.CreateAsync(season2.Id, 1, t1.Id, t3.Id, now, "Venue C");
 
-        var games = await svc.GetBySeasonAsync(100);
+        var games = await svc.GetBySeasonAsync(season1.Id);
         Assert.Equal(2, games.Count);
     }
 
@@ -174,12 +180,43 @@ public class ServiceIntegrationTests : IDisposable
     public async Task GameService_GetById()
     {
         var svc = new GameService(_db);
-        var game = await svc.CreateAsync(1, 1, 10, 20, DateTime.UtcNow, "Final");
+        var season = await new SeasonService(_db).CreateAsync("S1");
+        var teamA = await new TeamService(_db).CreateAsync("Team A", "#111111", true);
+        var teamB = await new TeamService(_db).CreateAsync("Team B", "#222222", true);
+        var game = await svc.CreateAsync(season.Id, 1, teamA.Id, teamB.Id, DateTime.UtcNow, "Final");
 
         var found = await svc.GetByIdAsync(game.Id);
         Assert.NotNull(found);
-        Assert.Equal(10, found.Team1);
-        Assert.Equal(20, found.Team2);
+        Assert.Equal(teamA.Id, found.Team1);
+        Assert.Equal(teamB.Id, found.Team2);
+    }
+
+    [Fact]
+    public async Task GameService_Create_RejectsSameTeams()
+    {
+        var season = await new SeasonService(_db).CreateAsync("S1");
+        var team = await new TeamService(_db).CreateAsync("Team A", "#111111", true);
+        var svc = new GameService(_db);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.CreateAsync(season.Id, 1, team.Id, team.Id, DateTime.UtcNow, "Arena"));
+
+        Assert.Equal("Team 1 and Team 2 must be different.", ex.Message);
+    }
+
+    [Fact]
+    public async Task GameService_Create_NormalizesGameDateToUtc()
+    {
+        var season = await new SeasonService(_db).CreateAsync("S1");
+        var teamA = await new TeamService(_db).CreateAsync("Team A", "#111111", true);
+        var teamB = await new TeamService(_db).CreateAsync("Team B", "#222222", true);
+        var svc = new GameService(_db);
+        var localDate = new DateTime(2026, 4, 13); // Unspecified kind by default
+
+        var game = await svc.CreateAsync(season.Id, 1, teamA.Id, teamB.Id, localDate, "Arena");
+
+        Assert.Equal(DateTimeKind.Utc, game.GameDate.Kind);
+        Assert.Equal(localDate.Date, game.GameDate.Date);
     }
 
     // --- AppConfigService ---

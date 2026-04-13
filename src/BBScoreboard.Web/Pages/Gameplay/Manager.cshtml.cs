@@ -10,7 +10,7 @@ using BBScoreboard.Domain.Enums;
 
 namespace BBScoreboard.Web.Pages.Gameplay;
 
-[Authorize]
+[Authorize(Roles = "Admin,Scorer")]
 public class ManagerModel : PageModel
 {
     private readonly IGameplayService _gameplay;
@@ -31,6 +31,8 @@ public class ManagerModel : PageModel
     public bool EnableTimer { get; set; }
     public bool ShowAllActions { get; set; }
     public bool IsAdmin { get; set; }
+    [TempData]
+    public string? ManagerError { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int? id, int? game)
     {
@@ -49,35 +51,75 @@ public class ManagerModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(int gameId, string cmd)
     {
-        switch (cmd)
+        if (gameId <= 0)
         {
-            case "Start":
-                await HandleStartAsync(gameId);
-                break;
-            case "Reset":
-                await _gameplay.ResetGameAsync(gameId);
-                break;
-            case "Lock":
-                var game = await _games.GetByIdAsync(gameId);
-                if (game != null)
-                {
-                    game.IsEnded = !game.IsEnded;
-                    await _games.UpdateAsync(game);
-                }
-                break;
-            case "UpdateGame":
-                await HandleUpdateGameAsync(gameId);
-                break;
+            return BadRequest();
+        }
+
+        try
+        {
+            switch (cmd)
+            {
+                case "Start":
+                    await HandleStartAsync(gameId);
+                    break;
+                case "Reset":
+                case "Lock":
+                case "UpdateGame":
+                    if (!User.IsInRole("Admin"))
+                    {
+                        return Forbid();
+                    }
+
+                    if (cmd == "Reset")
+                    {
+                        await _gameplay.ResetGameAsync(gameId);
+                    }
+                    else if (cmd == "Lock")
+                    {
+                        var game = await _games.GetByIdAsync(gameId);
+                        if (game != null)
+                        {
+                            game.IsEnded = !game.IsEnded;
+                            await _games.UpdateAsync(game);
+                        }
+                    }
+                    else
+                    {
+                        await HandleUpdateGameAsync(gameId);
+                    }
+                    break;
+                default:
+                    ManagerError = "Unknown command.";
+                    break;
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            ManagerError = ex.Message;
+        }
+        catch (FormatException)
+        {
+            ManagerError = "Invalid numeric input.";
+        }
+        catch (OverflowException)
+        {
+            ManagerError = "One or more values are out of range.";
         }
         return RedirectToPage(new { id = gameId });
     }
 
     private async Task HandleStartAsync(int gameId)
     {
-        var players0 = Request.Form["players0[]"].Where(s => s != null).Select(s => int.Parse(s!)).ToList();
-        var players1 = Request.Form["players1[]"].Where(s => s != null).Select(s => int.Parse(s!)).ToList();
+        var players0 = ParsePlayerIds("players0[]");
+        var players1 = ParsePlayerIds("players1[]");
         var starters = players0.Concat(players1).ToList();
-        var smm = int.Parse(Request.Form["smm"].FirstOrDefault() ?? "20");
+        var smm = ParseRequiredInt("smm", 20);
+        if (smm is < 1 or > 59)
+        {
+            throw new InvalidOperationException("Game time must be between 1 and 59 minutes.");
+        }
+
         var autoTimer = Request.Form["autoTimer"].FirstOrDefault() == "true";
         await _gameplay.StartGameAsync(gameId, starters, smm, autoTimer);
     }
@@ -86,7 +128,12 @@ public class ManagerModel : PageModel
     {
         var game = await _games.GetByIdAsync(gameId);
         if (game == null) return;
-        game.CurrentQuarter = int.Parse(Request.Form["quarter"].FirstOrDefault() ?? "1");
+        game.CurrentQuarter = ParseRequiredInt("quarter", 1);
+        if (game.CurrentQuarter < 1)
+        {
+            throw new InvalidOperationException("Quarter must be 1 or greater.");
+        }
+
         var updateScores = Request.Form["updateScores"].FirstOrDefault() == "true";
         await _games.UpdateAsync(game);
 
@@ -98,14 +145,51 @@ public class ManagerModel : PageModel
                 for (int t = 0; t < 2; t++)
                 {
                     var stat = gp.TeamModels[t].Stat;
-                    stat.Q1 = int.Parse(Request.Form[$"ts{t}_q1"].FirstOrDefault() ?? "0");
-                    stat.Q2 = int.Parse(Request.Form[$"ts{t}_q2"].FirstOrDefault() ?? "0");
-                    stat.Q3 = int.Parse(Request.Form[$"ts{t}_q3"].FirstOrDefault() ?? "0");
-                    stat.Q4 = int.Parse(Request.Form[$"ts{t}_q4"].FirstOrDefault() ?? "0");
+                    stat.Q1 = ParseRequiredInt($"ts{t}_q1", 0);
+                    stat.Q2 = ParseRequiredInt($"ts{t}_q2", 0);
+                    stat.Q3 = ParseRequiredInt($"ts{t}_q3", 0);
+                    stat.Q4 = ParseRequiredInt($"ts{t}_q4", 0);
                     await _gameplay.UpdateTeamStatAsync(stat);
                 }
             }
         }
+    }
+
+    private List<int> ParsePlayerIds(string key)
+    {
+        var ids = new List<int>();
+        foreach (var value in Request.Form[key])
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                continue;
+            }
+
+            if (!int.TryParse(value, out var id))
+            {
+                throw new InvalidOperationException("Invalid player selection.");
+            }
+
+            ids.Add(id);
+        }
+
+        return ids;
+    }
+
+    private int ParseRequiredInt(string key, int fallback)
+    {
+        var value = Request.Form[key].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return fallback;
+        }
+
+        if (!int.TryParse(value, out var parsed))
+        {
+            throw new InvalidOperationException($"Invalid value for '{key}'.");
+        }
+
+        return parsed;
     }
 
     public string GetTeamName(int teamId) => TeamMap.TryGetValue(teamId, out var t) ? t.Name : $"#{teamId}";

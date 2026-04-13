@@ -15,6 +15,11 @@
 
 <h3>Game @game.GameNumber — @Model.GetTeamName(game.Team1) vs @Model.GetTeamName(game.Team2)</h3>
 
+@if (TempData["ManagerError"] is string managerError && !string.IsNullOrWhiteSpace(managerError))
+{
+    <div class="alert alert-danger">@managerError</div>
+}
+
 @if (!game.IsStarted)
 {
     <h4>Starting Five</h4>

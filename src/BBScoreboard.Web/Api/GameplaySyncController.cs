@@ -15,6 +15,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     public IActionResult HelloWorld() => Ok("Hello World");
 
     [HttpPost("SendAction")]
+    [Authorize(Roles = "Admin,Scorer")]
     public async Task<IActionResult> SendAction(
         [FromQuery] int gameId, [FromQuery] int teamId, [FromQuery] int playerId,
         [FromQuery] int action, [FromQuery] int arg, [FromQuery] int recPlayerId)
@@ -24,6 +25,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     }
 
     [HttpPost("UpdateAction")]
+    [Authorize(Roles = "Admin,Scorer")]
     public async Task<IActionResult> UpdateAction(
         [FromQuery] int id, [FromQuery] int mm, [FromQuery] int ss)
     {
@@ -32,6 +34,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     }
 
     [HttpPost("UpdateTimer")]
+    [Authorize(Roles = "Admin,Scorer")]
     public async Task<IActionResult> UpdateTimer(
         [FromQuery] int gameId, [FromQuery] int start, [FromQuery] DateTime timeLeft,
         [FromQuery] int tlMs, [FromQuery] DateTime timerLastModified, [FromQuery] int tlmMs)
@@ -41,6 +44,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     }
 
     [HttpPost("UpdateGame")]
+    [Authorize(Roles = "Admin,Scorer")]
     public async Task<IActionResult> UpdateGame([FromBody] UpdateGameRequest req)
     {
         var result = await gameplay.UpdateGameAsync(

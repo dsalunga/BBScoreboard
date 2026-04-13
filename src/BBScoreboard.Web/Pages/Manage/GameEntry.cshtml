@@ -7,6 +7,7 @@
 <h3>@ViewData["Title"]</h3>
 
 <form method="post" class="col-md-6">
+    <div asp-validation-summary="All" class="text-danger mb-3"></div>
     <input type="hidden" name="seasonId" value="@Model.SeasonId" />
     @if (!Model.IsNew)
     {
@@ -14,7 +15,7 @@
     }
     <div class="mb-3">
         <label class="form-label">Game #</label>
-        <input type="number" name="gameNumber" class="form-control" value="@(Model.Game?.GameNumber ?? Model.NextGameNumber)" required />
+        <input type="number" min="1" name="gameNumber" class="form-control" value="@(Model.Game?.GameNumber ?? Model.NextGameNumber)" required />
     </div>
     <div class="mb-3">
         <label class="form-label">Team 1</label>
@@ -38,7 +39,7 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Date</label>
-        <input type="date" name="gameDate" class="form-control" value="@(Model.Game?.GameDate.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" />
+        <input type="date" name="gameDate" class="form-control" value="@(Model.Game?.GameDate.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd"))" required />
     </div>
     <div class="mb-3">
         <label class="form-label">Venue</label>

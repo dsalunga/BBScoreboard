@@ -44,10 +44,44 @@ public class GameEntryModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(int? id, int seasonId, int gameNumber, int team1, int team2, DateTime gameDate, string? venue)
     {
-        if (id.HasValue && id > 0)
-            await _games.UpdateAsync(id.Value, gameNumber, team1, team2, gameDate, venue ?? "");
-        else
-            await _games.CreateAsync(seasonId, gameNumber, team1, team2, gameDate, venue ?? "");
-        return RedirectToPage("Games", new { seasonId });
+        try
+        {
+            if (id.HasValue && id > 0)
+            {
+                await _games.UpdateAsync(id.Value, gameNumber, team1, team2, gameDate, venue ?? "");
+            }
+            else
+            {
+                await _games.CreateAsync(seasonId, gameNumber, team1, team2, gameDate, venue ?? "");
+            }
+
+            return RedirectToPage("Games", new { seasonId });
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+
+            TeamList = await _teams.GetAllAsync();
+            SeasonId = seasonId;
+            if (id.HasValue && id.Value > 0)
+            {
+                Game = new UCGame
+                {
+                    Id = id.Value,
+                    SeasonId = seasonId,
+                    GameNumber = gameNumber,
+                    Team1 = team1,
+                    Team2 = team2,
+                    GameDate = gameDate,
+                    Venue = venue ?? ""
+                };
+            }
+            else
+            {
+                NextGameNumber = gameNumber > 0 ? gameNumber : 1;
+            }
+
+            return Page();
+        }
     }
 }

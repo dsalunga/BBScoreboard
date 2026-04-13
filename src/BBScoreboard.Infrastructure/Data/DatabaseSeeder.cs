@@ -30,17 +30,18 @@ public static class DatabaseSeeder
         await EnsureRoleExistsAsync(roleManager, "Admin");
         await EnsureRoleExistsAsync(roleManager, "Scorer");
 
-        if (!await userManager.Users.AnyAsync())
+        var email = config["BootstrapAdmin:Email"] ?? config["DefaultUserEmail"];
+        var password = config["BootstrapAdmin:Password"] ?? config["DefaultPassword"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            var email = config["BootstrapAdmin:Email"] ?? config["DefaultUserEmail"];
-            var password = config["BootstrapAdmin:Password"] ?? config["DefaultPassword"];
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            {
-                logger?.LogInformation("Bootstrap admin credentials are empty. Skipping admin account creation.");
-                return;
-            }
+            logger?.LogInformation("Bootstrap admin credentials are empty. Skipping admin account creation.");
+            return;
+        }
 
-            var admin = new ApplicationUser
+        var admin = await userManager.FindByEmailAsync(email);
+        if (admin == null)
+        {
+            admin = new ApplicationUser
             {
                 UserName = email,
                 Email = email,
@@ -54,7 +55,58 @@ public static class DatabaseSeeder
                 var errors = string.Join("; ", createResult.Errors.Select(e => e.Description));
                 throw new InvalidOperationException($"Failed to create bootstrap admin user: {errors}");
             }
+        }
+        else
+        {
+            var updateNeeded = false;
+            if (!string.Equals(admin.UserName, email, StringComparison.OrdinalIgnoreCase))
+            {
+                admin.UserName = email;
+                updateNeeded = true;
+            }
 
+            if (admin.Access != AccessType.Admin)
+            {
+                admin.Access = AccessType.Admin;
+                updateNeeded = true;
+            }
+
+            if (!admin.EmailConfirmed)
+            {
+                admin.EmailConfirmed = true;
+                updateNeeded = true;
+            }
+
+            if (updateNeeded)
+            {
+                var updateResult = await userManager.UpdateAsync(admin);
+                if (!updateResult.Succeeded)
+                {
+                    var errors = string.Join("; ", updateResult.Errors.Select(e => e.Description));
+                    throw new InvalidOperationException($"Failed to update bootstrap admin user: {errors}");
+                }
+            }
+
+            IdentityResult passwordResult;
+            if (await userManager.HasPasswordAsync(admin))
+            {
+                var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
+                passwordResult = await userManager.ResetPasswordAsync(admin, resetToken, password);
+            }
+            else
+            {
+                passwordResult = await userManager.AddPasswordAsync(admin, password);
+            }
+
+            if (!passwordResult.Succeeded)
+            {
+                var errors = string.Join("; ", passwordResult.Errors.Select(e => e.Description));
+                throw new InvalidOperationException($"Failed to set bootstrap admin password: {errors}");
+            }
+        }
+
+        if (!await userManager.IsInRoleAsync(admin, "Admin"))
+        {
             var roleResult = await userManager.AddToRoleAsync(admin, "Admin");
             if (!roleResult.Succeeded)
             {

@@ -2,6 +2,7 @@ using BBScoreboard.Infrastructure;
 using BBScoreboard.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseStaticWebAssets();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddRazorPages();

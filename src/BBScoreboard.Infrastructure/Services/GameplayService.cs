@@ -84,7 +84,12 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
 
         // Get quarter player stats
         var game = gameplay.Game;
-        var q = game.CurrentQuarter > 4 ? 4 : game.CurrentQuarter;
+        var q = game.CurrentQuarter switch
+        {
+            < 1 => 1,
+            > 4 => 4,
+            _ => game.CurrentQuarter
+        };
         tm.QuarterPlayerStats = tm.PlayerStats.Where(p => p.Quarter == q).ToList();
 
         // Get players and setup stats if needed
@@ -146,25 +151,48 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
 
     private async Task StartGameInternalAsync(GameplayModel gp, IEnumerable<int> start1, IEnumerable<int> start2, int mins, bool autoStart)
     {
-
-        void SetStarting5(TeamGameplayModel tm, IEnumerable<int> ids)
+        if (gp.TeamModels.Count < 2)
         {
-            var idList = ids.ToList();
-            if (idList.Count == 5)
-            {
-                foreach (var id in idList)
-                {
-                    var stat = tm.PlayerStats.FirstOrDefault(s => s.PlayerId == id);
-                    if (stat != null) stat.InFloor = true;
-                }
-            }
+            throw new InvalidOperationException("Game must have two teams.");
         }
 
-        SetStarting5(gp.TeamModels[0], start1);
-        SetStarting5(gp.TeamModels[1], start2);
+        if (mins is < 1 or > 59)
+        {
+            throw new InvalidOperationException("Game time must be between 1 and 59 minutes.");
+        }
 
         var game = gp.Game;
         game.CurrentQuarter = 1;
+
+        var team1Starters = ValidateStarters(gp.TeamModels[0], start1);
+        var team2Starters = ValidateStarters(gp.TeamModels[1], start2);
+
+        var overlap = team1Starters.Intersect(team2Starters).Any();
+        if (overlap)
+        {
+            throw new InvalidOperationException("A player cannot start for both teams.");
+        }
+
+        EnsureQuarterStats(gp.TeamModels[0], 1);
+        EnsureQuarterStats(gp.TeamModels[1], 1);
+
+        void SetStarting5(TeamGameplayModel tm, IEnumerable<int> ids)
+        {
+            foreach (var stat in tm.QuarterPlayerStats)
+            {
+                stat.InFloor = false;
+            }
+
+            foreach (var id in ids)
+            {
+                var stat = tm.QuarterPlayerStats.FirstOrDefault(s => s.PlayerId == id);
+                if (stat != null) stat.InFloor = true;
+            }
+        }
+
+        SetStarting5(gp.TeamModels[0], team1Starters);
+        SetStarting5(gp.TeamModels[1], team2Starters);
+
         game.IsStarted = true;
         game.IsTimeOn = autoStart;
         game.TimeLastModified = autoStart ? DateTime.UtcNow : new DateTime(UCConstants.BaseDate.Ticks);
@@ -172,6 +200,37 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
         game.TimeLeft = new DateTime(2000, 1, 1, 0, mins, 0, DateTimeKind.Utc);
 
         await db.SaveChangesAsync();
+    }
+
+    private static List<int> ValidateStarters(TeamGameplayModel team, IEnumerable<int> selectedIds)
+    {
+        var ids = selectedIds.Distinct().ToList();
+        if (ids.Count != 5)
+        {
+            throw new InvalidOperationException($"Team '{team.Team.Name}' must have exactly 5 starters.");
+        }
+
+        var activePlayerIds = team.Players.Where(p => p.Active).Select(p => p.Id).ToHashSet();
+        if (ids.Any(id => !activePlayerIds.Contains(id)))
+        {
+            throw new InvalidOperationException($"Team '{team.Team.Name}' has invalid starter selection.");
+        }
+
+        return ids;
+    }
+
+    private static void EnsureQuarterStats(TeamGameplayModel team, int quarter)
+    {
+        var quarterStats = team.PlayerStats.Where(s => s.Quarter == quarter).ToList();
+        if (quarterStats.Count == 0)
+        {
+            throw new InvalidOperationException($"Team '{team.Team.Name}' has no player stats for quarter {quarter}.");
+        }
+
+        team.QuarterPlayerStats = quarterStats;
+        team.PlayerModels = team.PlayerModels
+            .Where(pm => pm.Stat.Quarter == quarter)
+            .ToList();
     }
 
     public async Task ResetGameAsync(int gameId)
