@@ -1,8 +1,10 @@
 name: CI
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+  # Disabled auto/scheduled triggers (kept as comments per request):
+  # push:
+  # pull_request:
 
 env:
   DOTNET_NOLOGO: true
