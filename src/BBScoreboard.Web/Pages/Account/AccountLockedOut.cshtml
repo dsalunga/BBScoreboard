@@ -1,0 +1,14 @@
+@page
+@{
+    ViewData["Title"] = "Account Locked Out";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <h2>Account Locked Out</h2>
+        <div class="alert alert-warning">
+            Too many failed sign-in attempts. Please try again later or contact an administrator.
+        </div>
+        <a asp-page="/Login" class="btn btn-primary">Back to Sign In</a>
+    </div>
+</div>

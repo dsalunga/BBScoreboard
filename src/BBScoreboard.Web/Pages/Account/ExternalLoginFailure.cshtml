@@ -1,0 +1,14 @@
+@page
+@{
+    ViewData["Title"] = "External Login Failure";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <h2>External Login Failure</h2>
+        <div class="alert alert-danger">
+            External login providers are not enabled in this deployment.
+        </div>
+        <a asp-page="/Login" class="btn btn-primary">Back to Sign In</a>
+    </div>
+</div>

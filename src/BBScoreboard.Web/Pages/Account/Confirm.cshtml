@@ -1,0 +1,13 @@
+@page
+@model BBScoreboard.Web.Pages.Account.ConfirmModel
+@{
+    ViewData["Title"] = "Confirm Email";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <h2>Confirm Email</h2>
+        <div class="alert alert-info">@Model.StatusMessage</div>
+        <a asp-page="/Login" class="btn btn-primary">Back to Sign In</a>
+    </div>
+</div>

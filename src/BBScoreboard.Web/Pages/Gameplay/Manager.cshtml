@@ -77,13 +77,16 @@ else
                 <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Reset game? All data will be deleted.')">Reset</button>
             </form>
         }
-        <form method="post" class="d-inline">
-            <input type="hidden" name="cmd" value="Lock" />
-            <input type="hidden" name="gameId" value="@game.Id" />
-            <button type="submit" class="btn btn-sm @(game.IsEnded ? "btn-warning" : "btn-outline-warning")">
-                @(game.IsEnded ? "Unlock" : "Lock")
-            </button>
-        </form>
+        @if (Model.IsAdmin)
+        {
+            <form method="post" class="d-inline">
+                <input type="hidden" name="cmd" value="Lock" />
+                <input type="hidden" name="gameId" value="@game.Id" />
+                <button type="submit" class="btn btn-sm @(game.IsEnded ? "btn-warning" : "btn-outline-warning")">
+                    @(game.IsEnded ? "Unlock" : "Lock")
+                </button>
+            </form>
+        }
         <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#gameOptionsModal">Options</button>
     </div>
 
@@ -162,14 +165,21 @@ else
                         var q = game.CurrentQuarter > 4 ? 4 : game.CurrentQuarter;
                         var teamActions = team.Actions
                             .Where(a => Model.ShowAllActions ? true : (q == 4 ? a.Quarter >= q : a.Quarter == q))
-                            .Where(a => a.Status == 1)
                             .OrderByDescending(a => a.ActionDate)
                             .Take(Model.ShowAllActions ? int.MaxValue : 20);
                     }
                     @foreach (var action in teamActions)
                     {
-                        <div class="action-item" data-action-id="@action.Id">
+                        <div class="action-item @(action.Status == 0 ? "text-muted" : string.Empty)"
+                             data-action-id="@action.Id"
+                             data-action-status="@action.Status"
+                             data-action-time="@action.GameTime.ToString("mm':'ss")"
+                             style="cursor:@(game.IsEnded ? "default" : "pointer")">
                             @Html.Raw(GameHelper.ActionToString(action, team.Players))
+                            @if (action.Status == 0)
+                            {
+                                <span class="badge bg-secondary ms-1">Undone</span>
+                            }
                         </div>
                     }
                 </div>
@@ -234,18 +244,32 @@ else
                             </select>
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" name="updateScores" value="true" />
+                            <input class="form-check-input" type="checkbox" name="updateScores" id="updateScores" value="true" />
                             <label class="form-check-label">Update Scores</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="updateTime" id="updateTime" value="true" />
+                            <label class="form-check-label">Update Time</label>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-3">
+                                <label class="form-label mb-1">Min</label>
+                                <input type="number" min="0" max="59" name="mm" id="timeMm" class="form-control form-control-sm" value="@game.TimeLeft.Minute" />
+                            </div>
+                            <div class="col-3">
+                                <label class="form-label mb-1">Sec</label>
+                                <input type="number" min="0" max="59" name="ss" id="timeSs" class="form-control form-control-sm" value="@game.TimeLeft.Second" />
+                            </div>
                         </div>
                         @for (int t = 0; t < 2; t++)
                         {
                             var ts = Model.Gp!.TeamModels[t].Stat;
                             <div class="row mb-2">
                                 <div class="col-3"><strong>@Model.Gp.TeamModels[t].Team.Name</strong></div>
-                                <div class="col-2"><input type="number" name="ts@(t)_q1" class="form-control form-control-sm" value="@ts.Q1" /></div>
-                                <div class="col-2"><input type="number" name="ts@(t)_q2" class="form-control form-control-sm" value="@ts.Q2" /></div>
-                                <div class="col-2"><input type="number" name="ts@(t)_q3" class="form-control form-control-sm" value="@ts.Q3" /></div>
-                                <div class="col-2"><input type="number" name="ts@(t)_q4" class="form-control form-control-sm" value="@ts.Q4" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q1" class="form-control form-control-sm score-input" min="0" max="250" value="@ts.Q1" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q2" class="form-control form-control-sm score-input" min="0" max="250" value="@ts.Q2" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q3" class="form-control form-control-sm score-input" min="0" max="250" value="@ts.Q3" /></div>
+                                <div class="col-2"><input type="number" name="ts@(t)_q4" class="form-control form-control-sm score-input" min="0" max="250" value="@ts.Q4" /></div>
                             </div>
                         }
                     </div>
@@ -254,6 +278,35 @@ else
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="actionEditorModal" tabindex="-1" aria-labelledby="actionEditorLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="actionEditorLabel">Edit Action</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">Action ID: <span id="actionEditorId">-</span></p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label for="actionMm" class="form-label">Minute</label>
+                            <select id="actionMm" class="form-select"></select>
+                        </div>
+                        <div class="col-6">
+                            <label for="actionSs" class="form-label">Second</label>
+                            <select id="actionSs" class="form-select"></select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btnUndoRedoAction" class="btn btn-warning me-auto">Toggle</button>
+                    <button type="button" id="btnUpdateActionTime" class="btn btn-success">Update Time</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -268,6 +321,20 @@ else
     var selectedPlayerId = 0;
     var selectedTeamId = 0;
     var lastUpdate = new Date().toISOString();
+    var selectedActionId = 0;
+    var selectedActionStatus = 1;
+    var actionEditorEl = document.getElementById('actionEditorModal');
+    var actionEditor = actionEditorEl ? new bootstrap.Modal(actionEditorEl) : null;
+
+    var actionMm = document.getElementById('actionMm');
+    var actionSs = document.getElementById('actionSs');
+    if (actionMm && actionSs) {
+        for (var i = 0; i < 60; i++) {
+            var text = String(i).padStart(2, '0');
+            actionMm.append(new Option(text, i));
+            actionSs.append(new Option(text, i));
+        }
+    }
 
     // Player row click handler
     document.querySelectorAll('.player-row').forEach(function(row) {
@@ -312,6 +379,14 @@ else
         }).then(function() { location.reload(); });
     }
 
+    function updateAction(actionId, mm, ss) {
+        fetch('/api/GameplaySync/UpdateAction?id=' + actionId + '&mm=' + mm + '&ss=' + ss, {
+            method: 'POST'
+        }).then(function() {
+            location.reload();
+        });
+    }
+
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (!e.altKey || gameEnded || selectedPlayerId === 0) return;
@@ -324,6 +399,62 @@ else
             sendAction(selectedPlayerId, selectedTeamId, map[key][0], map[key][1]);
         }
     });
+
+    document.querySelectorAll('.action-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            if (gameEnded || !actionEditor) return;
+            selectedActionId = parseInt(this.dataset.actionId || '0');
+            selectedActionStatus = parseInt(this.dataset.actionStatus || '1');
+            if (!selectedActionId) return;
+
+            var time = (this.dataset.actionTime || '00:00').split(':');
+            if (actionMm && actionSs) {
+                actionMm.value = parseInt(time[0] || '0').toString();
+                actionSs.value = parseInt(time[1] || '0').toString();
+            }
+
+            var title = document.getElementById('actionEditorLabel');
+            if (title) title.textContent = this.textContent.trim();
+            var idLabel = document.getElementById('actionEditorId');
+            if (idLabel) idLabel.textContent = selectedActionId.toString();
+            var toggleBtn = document.getElementById('btnUndoRedoAction');
+            if (toggleBtn) {
+                toggleBtn.textContent = selectedActionStatus === 1 ? 'Undo Action' : 'Redo Action';
+                toggleBtn.classList.toggle('btn-warning', selectedActionStatus !== 1);
+                toggleBtn.classList.toggle('btn-danger', selectedActionStatus === 1);
+            }
+
+            actionEditor.show();
+        });
+    });
+
+    document.getElementById('btnUndoRedoAction')?.addEventListener('click', function() {
+        if (!selectedActionId) return;
+        actionEditor?.hide();
+        updateAction(selectedActionId, -1, 0);
+    });
+
+    document.getElementById('btnUpdateActionTime')?.addEventListener('click', function() {
+        if (!selectedActionId || !actionMm || !actionSs) return;
+        actionEditor?.hide();
+        updateAction(selectedActionId, parseInt(actionMm.value), parseInt(actionSs.value));
+    });
+
+    function toggleGameOptionInputs() {
+        var scoreEnabled = document.getElementById('updateScores')?.checked ?? false;
+        document.querySelectorAll('.score-input').forEach(function(input) {
+            input.disabled = !scoreEnabled;
+        });
+        var timeEnabled = document.getElementById('updateTime')?.checked ?? false;
+        var mm = document.getElementById('timeMm');
+        var ss = document.getElementById('timeSs');
+        if (mm) mm.disabled = !timeEnabled;
+        if (ss) ss.disabled = !timeEnabled;
+    }
+
+    document.getElementById('updateScores')?.addEventListener('change', toggleGameOptionInputs);
+    document.getElementById('updateTime')?.addEventListener('change', toggleGameOptionInputs);
+    toggleGameOptionInputs();
 
     // Auto-refresh polling
     @if (game.IsStarted && !game.IsEnded)

@@ -8,10 +8,11 @@ using BBScoreboard.Domain.Entities;
 using BBScoreboard.Domain.Enums;
 using BBScoreboard.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace BBScoreboard.Infrastructure.Services;
 
-public class GameplayService(BBScoreboardDbContext db) : IGameplayService
+public class GameplayService(BBScoreboardDbContext db, ILogger<GameplayService> logger) : IGameplayService
 {
     public async Task<GameplayModel?> BuildGameplayModelAsync(int gameId)
     {
@@ -200,6 +201,7 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
         game.TimeLeft = new DateTime(2000, 1, 1, 0, mins, 0, DateTimeKind.Utc);
 
         await db.SaveChangesAsync();
+        logger.LogInformation("Started game {GameId} with minutes={Minutes} autoStart={AutoStart}", gp.GameId, mins, autoStart);
     }
 
     private static List<int> ValidateStarters(TeamGameplayModel team, IEnumerable<int> selectedIds)
@@ -253,6 +255,7 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
         }
 
         await db.SaveChangesAsync();
+        logger.LogInformation("Reset game {GameId}; removed actions/stats and set not-started.", gameId);
     }
 
     public async Task<string> SendActionAsync(int gameId, int teamId, int playerId, int action, int arg, int recPlayerId)
@@ -305,6 +308,8 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
 
         game.LastActivityDate = now;
         await db.SaveChangesAsync();
+        logger.LogInformation("Recorded gameplay action gameId={GameId} teamId={TeamId} playerId={PlayerId} action={Action} arg={Arg}",
+            gameId, teamId, playerId, action, arg);
 
         return "{\"return\":0}";
     }
@@ -361,6 +366,8 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
         action.LastUpdate = now;
         game.LastActivityDate = now;
         await db.SaveChangesAsync();
+        logger.LogInformation("Updated gameplay action actionId={ActionId} mm={Minute} ss={Second} status={Status}",
+            id, mm, ss, action.Status);
 
         return 0;
     }
@@ -378,6 +385,8 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
         game.LastUpdate = now;
 
         await db.SaveChangesAsync();
+        logger.LogInformation("Updated timer gameId={GameId} start={Start} timeLeft={TimeLeft}",
+            gameId, start, game.TimeLeft);
         return 0;
     }
 
@@ -417,7 +426,7 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
             for (int i = 0; i < 2; i++)
             {
                 var teamModel = gp.TeamModels[i];
-                var stats = teamModel.QuarterPlayerStats;
+                var stats = teamModel.PlayerStats.Where(s => s.Quarter == q).ToList();
                 var players = teamModel.Players;
 
                 foreach (var player in players)
@@ -445,6 +454,9 @@ public class GameplayService(BBScoreboardDbContext db) : IGameplayService
             game.LastActivityDate = now;
             await db.SaveChangesAsync();
         }
+
+        logger.LogInformation("Updated game settings gameId={GameId} quarter={Quarter} updateScores={UpdateScores} updateTime={UpdateTime}",
+            gameId, quarter, updateScores, updateTime);
 
         return 0;
     }

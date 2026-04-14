@@ -41,8 +41,7 @@ public class LoginModel(SignInManager<ApplicationUser> signInManager) : PageMode
 
         if (result.IsLockedOut)
         {
-            ErrorMessage = "Account locked out. Please try again later.";
-            return Page();
+            return RedirectToPage("/Account/AccountLockedOut");
         }
 
         ErrorMessage = "Invalid login attempt.";

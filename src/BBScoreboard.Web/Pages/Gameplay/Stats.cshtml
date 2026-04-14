@@ -7,6 +7,34 @@
     var game = Model.Gp?.Game;
 }
 
+@section Styles {
+<style>
+    @@media print {
+        body {
+            padding-top: 0 !important;
+            background: #fff !important;
+        }
+
+        .no-print,
+        header,
+        footer {
+            display: none !important;
+        }
+
+        .container {
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        table td,
+        table th {
+            font-size: 11px !important;
+        }
+    }
+</style>
+}
+
 @if (game == null)
 {
     <div class="alert alert-warning">Game not found.</div>
@@ -14,6 +42,10 @@
 }
 
 <h3>Game @game.GameNumber — @Model.GetTeamName(game.Team1) vs @Model.GetTeamName(game.Team2)</h3>
+<div class="no-print mb-3">
+    <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">Print Stats</button>
+    <a asp-page="Games" class="btn btn-secondary btn-sm">Back to Games</a>
+</div>
 
 <!-- Score Summary -->
 <table class="table table-sm table-bordered w-auto mb-4">
@@ -108,5 +140,3 @@
         </table>
     </div>
 }
-
-<a asp-page="Games" class="btn btn-secondary mt-3">Back to Games</a>

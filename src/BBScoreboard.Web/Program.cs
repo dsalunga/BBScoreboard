@@ -1,5 +1,6 @@
 using BBScoreboard.Infrastructure;
 using BBScoreboard.Infrastructure.Data;
+using Microsoft.AspNetCore.HttpLogging;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseStaticWebAssets();
@@ -7,6 +8,15 @@ builder.WebHost.UseStaticWebAssets();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields =
+        HttpLoggingFields.RequestMethod |
+        HttpLoggingFields.RequestPath |
+        HttpLoggingFields.RequestQuery |
+        HttpLoggingFields.ResponseStatusCode |
+        HttpLoggingFields.Duration;
+});
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<BBScoreboardDbContext>(name: "database");
 
@@ -26,6 +36,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseHttpLogging();
 
 app.UseAuthentication();
 app.UseAuthorization();

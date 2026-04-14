@@ -128,31 +128,84 @@ public class ManagerModel : PageModel
     {
         var game = await _games.GetByIdAsync(gameId);
         if (game == null) return;
-        game.CurrentQuarter = ParseRequiredInt("quarter", 1);
-        if (game.CurrentQuarter < 1)
+        var quarter = ParseRequiredInt("quarter", 1);
+        if (quarter < 1)
         {
             throw new InvalidOperationException("Quarter must be 1 or greater.");
         }
 
         var updateScores = Request.Form["updateScores"].FirstOrDefault() == "true";
-        await _games.UpdateAsync(game);
+        var updateTime = Request.Form["updateTime"].FirstOrDefault() == "true";
 
+        var gp = await _gameplay.BuildGameplayModelAsync(gameId);
+        if (gp == null)
+        {
+            throw new InvalidOperationException("Game not found.");
+        }
+
+        var ts0 = CloneTeamStat(gp.TeamModels[0].Stat);
+        var ts1 = CloneTeamStat(gp.TeamModels[1].Stat);
         if (updateScores)
         {
-            var gp = await _gameplay.BuildGameplayModelAsync(gameId);
-            if (gp != null)
-            {
-                for (int t = 0; t < 2; t++)
-                {
-                    var stat = gp.TeamModels[t].Stat;
-                    stat.Q1 = ParseRequiredInt($"ts{t}_q1", 0);
-                    stat.Q2 = ParseRequiredInt($"ts{t}_q2", 0);
-                    stat.Q3 = ParseRequiredInt($"ts{t}_q3", 0);
-                    stat.Q4 = ParseRequiredInt($"ts{t}_q4", 0);
-                    await _gameplay.UpdateTeamStatAsync(stat);
-                }
-            }
+            ApplyTeamScores(ts0, 0);
+            ApplyTeamScores(ts1, 1);
         }
+
+        var now = DateTime.UtcNow;
+        var timeLeft = game.TimeLeft;
+        if (updateTime)
+        {
+            var mm = ParseRequiredInt("mm", game.TimeLeft.Minute);
+            var ss = ParseRequiredInt("ss", game.TimeLeft.Second);
+            if (mm is < 0 or > 59 || ss is < 0 or > 59)
+            {
+                throw new InvalidOperationException("Time values must be between 0 and 59.");
+            }
+
+            timeLeft = new DateTime(2000, 1, 1, 0, mm, ss, 0, DateTimeKind.Utc);
+        }
+
+        await _gameplay.UpdateGameAsync(
+            gameId,
+            quarter,
+            updateScores,
+            ts0,
+            ts1,
+            updateTime,
+            timeLeft,
+            tlMs: 0,
+            timerLastModified: now,
+            tlmMs: 0);
+    }
+
+    private UCGameTeamStat CloneTeamStat(UCGameTeamStat source)
+    {
+        return new UCGameTeamStat
+        {
+            Q1 = source.Q1,
+            Q2 = source.Q2,
+            Q3 = source.Q3,
+            Q4 = source.Q4
+        };
+    }
+
+    private void ApplyTeamScores(UCGameTeamStat stat, int index)
+    {
+        stat.Q1 = ParseScore($"ts{index}_q1");
+        stat.Q2 = ParseScore($"ts{index}_q2");
+        stat.Q3 = ParseScore($"ts{index}_q3");
+        stat.Q4 = ParseScore($"ts{index}_q4");
+    }
+
+    private int ParseScore(string key)
+    {
+        var value = ParseRequiredInt(key, 0);
+        if (value is < 0 or > 250)
+        {
+            throw new InvalidOperationException($"Score value for '{key}' must be between 0 and 250.");
+        }
+
+        return value;
     }
 
     private List<int> ParsePlayerIds(string key)

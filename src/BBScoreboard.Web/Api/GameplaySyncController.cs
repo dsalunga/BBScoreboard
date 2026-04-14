@@ -8,7 +8,7 @@ namespace BBScoreboard.Web.Api;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
+public class GameplaySyncController(IGameplayService gameplay, ILogger<GameplaySyncController> logger) : ControllerBase
 {
     [HttpGet("HelloWorld")]
     [AllowAnonymous]
@@ -20,6 +20,8 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
         [FromQuery] int gameId, [FromQuery] int teamId, [FromQuery] int playerId,
         [FromQuery] int action, [FromQuery] int arg, [FromQuery] int recPlayerId)
     {
+        logger.LogInformation("Gameplay API SendAction gameId={GameId} teamId={TeamId} playerId={PlayerId} action={Action} arg={Arg}",
+            gameId, teamId, playerId, action, arg);
         var result = await gameplay.SendActionAsync(gameId, teamId, playerId, action, arg, recPlayerId);
         return Content(result, "application/json");
     }
@@ -29,6 +31,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     public async Task<IActionResult> UpdateAction(
         [FromQuery] int id, [FromQuery] int mm, [FromQuery] int ss)
     {
+        logger.LogInformation("Gameplay API UpdateAction actionId={ActionId} mm={Minute} ss={Second}", id, mm, ss);
         var result = await gameplay.UpdateActionAsync(id, mm, ss);
         return Ok(result);
     }
@@ -39,6 +42,7 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
         [FromQuery] int gameId, [FromQuery] int start, [FromQuery] DateTime timeLeft,
         [FromQuery] int tlMs, [FromQuery] DateTime timerLastModified, [FromQuery] int tlmMs)
     {
+        logger.LogInformation("Gameplay API UpdateTimer gameId={GameId} start={Start} timeLeft={TimeLeft}", gameId, start, timeLeft);
         var result = await gameplay.UpdateTimerAsync(gameId, start, timeLeft, tlMs, timerLastModified, tlmMs);
         return Ok(result);
     }
@@ -47,6 +51,8 @@ public class GameplaySyncController(IGameplayService gameplay) : ControllerBase
     [Authorize(Roles = "Admin,Scorer")]
     public async Task<IActionResult> UpdateGame([FromBody] UpdateGameRequest req)
     {
+        logger.LogInformation("Gameplay API UpdateGame gameId={GameId} quarter={Quarter} updateScores={UpdateScores} updateTime={UpdateTime}",
+            req.GameId, req.Quarter, req.UpdateScores, req.UpdateTime);
         var result = await gameplay.UpdateGameAsync(
             req.GameId, req.Quarter, req.UpdateScores, req.Ts0, req.Ts1,
             req.UpdateTime, req.TimeLeft, req.TlMs, req.TimerLastModified, req.TlmMs);
